@@ -1,0 +1,19 @@
+{
+  "name": "space-x-vod",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Space-X Video on Demand Application — Hybrid Movie Recommendation System (Vite + React + TS + Express + PostgreSQL + VidLink)",
+  "scripts": {
+    "dev": "concurrently -n API,WEB -c cyan,yellow \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "build": "npm --prefix server run build && npm --prefix client run build",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:migrate": "npm --prefix server run db:migrate",
+    "db:seed:movielens": "npm --prefix server run db:seed:movielens"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

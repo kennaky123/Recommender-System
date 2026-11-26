@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: spacex_vod_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: spacex
+      POSTGRES_PASSWORD: spacex_secret
+      POSTGRES_DB: spacex_vod
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spacex -d spacex_vod"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:
