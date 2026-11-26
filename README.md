@@ -43,7 +43,7 @@ Thêm `TMDB_API_KEY` vào `server/.env` để tự động làm giàu ảnh back
 npm run dev
 ```
 - Frontend: `http://localhost:5173`
-- Backend API: `http://localhost:4000`
+- Backend API: `http://localhost:5050` (PostgreSQL Docker chạy ở cổng `5433` để tránh xung đột cổng `5432` mặc định)
 
 ## Kiến trúc Recommendation Engine & VidLink Feedback Loop
 
