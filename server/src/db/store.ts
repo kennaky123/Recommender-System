@@ -467,11 +467,17 @@ class InMemoryFallbackStore implements DataStore {
 
 let activeStore: DataStore | null = null;
 
+export function resolveSchemaPath(): string {
+  const local = path.resolve(__dirname, 'schema.sql');
+  if (fs.existsSync(local)) return local;
+  return path.resolve(__dirname, '..', '..', 'src', 'db', 'schema.sql');
+}
+
 export async function initDataStore(): Promise<DataStore> {
   if (activeStore) return activeStore;
   try {
     await pool.query('SELECT 1');
-    const schemaPath = path.resolve(__dirname, 'schema.sql');
+    const schemaPath = resolveSchemaPath();
     const schemaSql = fs.readFileSync(schemaPath, 'utf-8');
     await pool.query(schemaSql);
     const { rows } = await pool.query('SELECT COUNT(*)::int AS cnt FROM movies');

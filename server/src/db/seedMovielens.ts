@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { parse } from 'csv-parse/sync';
 import { pool } from './pool';
+import { resolveSchemaPath } from './store';
 import { MoodTag, ProviderName } from '../types';
 
 const PROVIDERS: ProviderName[] = ['NETFLIX', 'HBOmax', 'Disney+', 'sky cinema', 'sky one'];
@@ -89,7 +90,7 @@ async function seedMovieLens() {
     skip_empty_lines: true,
   }) as Array<{ movieId: string; title: string; genres: string }>;
 
-  const schemaSql = fs.readFileSync(path.resolve(__dirname, 'schema.sql'), 'utf-8');
+  const schemaSql = fs.readFileSync(resolveSchemaPath(), 'utf-8');
   await pool.query(schemaSql);
 
   const mlToDbId = new Map<number, number>();
