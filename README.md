@@ -27,16 +27,13 @@ npm run db:migrate
 *(Nếu chưa bật PostgreSQL/Docker, backend sẽ tự động chuyển sang `InMemoryFallbackStore` với đầy đủ dữ liệu mẫu & thuật toán Hybrid Recommendation để bạn chạy thử ngay lập tức.)*
 
 ### 3. Import dataset MovieLens Latest Small (`ml-latest-small`)
-1. Tải `ml-latest-small.zip` từ [GroupLens](https://grouplens.org/datasets/movielens/latest/) và giải nén vào `server/data/ml-latest-small/` (chứa `movies.csv`, `links.csv`, `ratings.csv`, `tags.csv`).
-2. Chạy script import vào PostgreSQL:
+Chạy script sau để tự động tải `ml-latest-small.zip` và import toàn bộ **~9,700+ phim** & **100,836 ratings** vào PostgreSQL:
 ```bash
 npm run db:seed:movielens
-# Hoặc giới hạn 500 phim đầu để test nhanh:
-npm --prefix server run db:seed:movielens -- --limit=500
 ```
 
-### 4. (Tùy chọn) TMDB Metadata Enrichment
-Thêm `TMDB_API_KEY` vào `server/.env` để tự động làm giàu ảnh backdrop HD cho các phim import thêm từ MovieLens.
+### 4. (Tùy chọn) TMDB Global Search & Metadata Enrichment
+Thêm `TMDB_API_KEY` (hoặc `TMDB_ACCESS_TOKEN`) vào `server/.env` để bật tìm kiếm trực tiếp toàn bộ kho phim/series của **TMDB** song song với PostgreSQL MovieLens và tự động lấy backdrop HD + trailer.
 
 ### 5. Chạy ứng dụng (Backend + Frontend)
 ```bash

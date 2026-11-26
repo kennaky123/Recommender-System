@@ -14,6 +14,7 @@ export type MoodTag =
   | 'mind-bending'
   | 'epic';
 export type NavCategory = 'home' | 'films' | 'shows' | 'live' | 'audio';
+export type CatalogSort = 'popular' | 'newest' | 'title';
 
 export interface Episode {
   season: number;
@@ -44,6 +45,7 @@ export interface Movie {
   trailerYoutubeId?: string | null;
   seasonsCount?: number;
   episodes?: Episode[];
+  source?: 'local' | 'movielens' | 'tmdb';
 }
 
 export interface UserProfile {
@@ -93,6 +95,7 @@ export interface RecommendationFeed {
   continueWatching: RecommendedMovie[];
   myList: RecommendedMovie[];
   storageMode: 'postgres' | 'memory-fallback';
+  tmdbEnabled: boolean;
   engineStats: {
     totalMovies: number;
     totalRatings: number;
@@ -103,4 +106,13 @@ export interface RecommendationFeed {
       popularityPrior: number;
     };
   };
+}
+
+export interface PaginatedCatalogResult {
+  items: RecommendedMovie[];
+  total: number;
+  page: number;
+  totalPages: number;
+  tmdbEnabled: boolean;
+  source: string;
 }

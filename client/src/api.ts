@@ -1,8 +1,11 @@
 import {
+  CatalogSort,
   MoodTag,
   NavCategory,
+  PaginatedCatalogResponse,
   RecommendationFeed,
   RecommendedMovie,
+  SearchCatalogResponse,
   UserProfileResponse,
 } from './types';
 
@@ -14,13 +17,41 @@ export async function fetchRecommendations(
 ): Promise<RecommendationFeed> {
   const apiCat = category === 'films' || category === 'shows' ? category : 'home';
   const res = await fetch(
-    `/api/recommendations?userId=${USER_ID}&mood=${encodeURIComponent(mood)}&category=${encodeURIComponent(apiCat)}`
+    `/api/recommendations?userId=${USER_ID}&mood=${encodeURIComponent(
+      mood
+    )}&category=${encodeURIComponent(apiCat)}`
   );
   if (!res.ok) throw new Error('Failed to load recommendations');
   return res.json();
 }
 
-export async function fetchSimilarMovies(movieId: number): Promise<RecommendedMovie[]> {
+export async function fetchFullCatalog(params: {
+  category?: 'all' | 'films' | 'shows';
+  genre?: string;
+  mood?: MoodTag;
+  sort?: CatalogSort;
+  page?: number;
+  limit?: number;
+  source?: 'auto' | 'tmdb';
+}): Promise<PaginatedCatalogResponse> {
+  const qs = new URLSearchParams({
+    userId: String(USER_ID),
+    category: params.category ?? 'all',
+    genre: params.genre ?? 'ALL',
+    mood: params.mood ?? 'all',
+    sort: params.sort ?? 'popular',
+    page: String(params.page ?? 1),
+    limit: String(params.limit ?? 24),
+    source: params.source ?? 'auto',
+  });
+  const res = await fetch(`/api/catalog?${qs.toString()}`);
+  if (!res.ok) throw new Error('Failed to fetch catalog');
+  return res.json();
+}
+
+export async function fetchSimilarMovies(
+  movieId: number
+): Promise<RecommendedMovie[]> {
   const res = await fetch(`/api/movies/${movieId}/similar?userId=${USER_ID}&limit=6`);
   if (!res.ok) throw new Error('Failed to load similar movies');
   const data = (await res.json()) as { items: RecommendedMovie[] };
@@ -30,13 +61,37 @@ export async function fetchSimilarMovies(movieId: number): Promise<RecommendedMo
 export async function searchCatalog(
   query: string,
   mood: MoodTag = 'all',
-  genre = 'ALL'
-): Promise<RecommendedMovie[]> {
-  const params = new URLSearchParams({ q: query, mood, genre });
+  genre = 'ALL',
+  mediaType: 'all' | 'movie' | 'tv' = 'all',
+  page = 1,
+  limit = 24
+): Promise<SearchCatalogResponse> {
+  const params = new URLSearchParams({
+    userId: String(USER_ID),
+    q: query,
+    mood,
+    genre,
+    mediaType,
+    page: String(page),
+    limit: String(limit),
+  });
   const res = await fetch(`/api/search?${params.toString()}`);
   if (!res.ok) throw new Error('Search failed');
-  const data = (await res.json()) as { movies: RecommendedMovie[] };
-  return data.movies;
+  return res.json();
+}
+
+export async function ensureMovieInDb(
+  movie: RecommendedMovie
+): Promise<RecommendedMovie> {
+  if (movie.id > 0) return movie;
+  const res = await fetch('/api/movies/ensure', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(movie),
+  });
+  if (!res.ok) throw new Error('Failed to register movie');
+  const data = (await res.json()) as { movie: RecommendedMovie };
+  return data.movie;
 }
 
 export async function submitRating(

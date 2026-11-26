@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  ensureMovieInDb,
   fetchRecommendations,
   saveWatchProgress,
   submitRating,
   toggleMyList,
 } from './api';
 import { ContentRow } from './components/ContentRow';
+import { FullCatalogGrid } from './components/FullCatalogGrid';
 import { HeroPreview } from './components/HeroPreview';
 import { LeftSidebar } from './components/LeftSidebar';
 import { MobileRemoteDrawer } from './components/MobileRemoteDrawer';
@@ -70,6 +72,7 @@ export function App() {
               data.popularSuggestions.find((m) => m.id === prev.id) ??
               data.continueWatching.find((m) => m.id === prev.id);
             if (updated) return updated;
+            if (prev.id > 0) return prev;
           }
           return data.heroFeatured;
         });
@@ -87,37 +90,50 @@ export function App() {
     loadFeed(activeMood, activeCategory);
   }, [activeMood, activeCategory, loadFeed]);
 
+  // Dashboard (HOME) stays strictly limited to 8 items per row
   const activeRows = useMemo(() => {
     if (!feed) return [];
-    const rows: Array<{ title: string; items: RecommendedMovie[]; showProgress?: boolean }> =
-      [
-        { title: 'NEW FOR YOU', items: feed.newForYou },
-        { title: 'POPULAR SUGGESTIONS FOR YOU', items: feed.popularSuggestions },
-      ];
+    const rows: Array<{
+      title: string;
+      items: RecommendedMovie[];
+      showProgress?: boolean;
+      allowViewAll?: boolean;
+    }> = [
+      {
+        title: 'NEW FOR YOU',
+        items: feed.newForYou.slice(0, 8),
+        allowViewAll: true,
+      },
+      {
+        title: 'POPULAR SUGGESTIONS FOR YOU',
+        items: feed.popularSuggestions.slice(0, 8),
+      },
+    ];
     if (feed.continueWatching.length > 0) {
       rows.push({
         title: 'CONTINUE WATCHING',
-        items: feed.continueWatching,
+        items: feed.continueWatching.slice(0, 8),
         showProgress: true,
       });
     }
     if (feed.becauseYouWatched && feed.becauseYouWatched.items.length > 0) {
       rows.push({
         title: `BECAUSE YOU LIKED ${feed.becauseYouWatched.anchorTitle}`,
-        items: feed.becauseYouWatched.items,
+        items: feed.becauseYouWatched.items.slice(0, 8),
       });
     }
     if (feed.myList.length > 0) {
       rows.push({
         title: 'MY LIST',
-        items: feed.myList,
+        items: feed.myList.slice(0, 8),
       });
     }
     return rows;
   }, [feed]);
 
-  const handleSelectMovie = useCallback((movie: RecommendedMovie) => {
-    setFocusedMovie(movie);
+  const handleSelectMovie = useCallback(async (movie: RecommendedMovie) => {
+    const ensured = movie.id < 0 ? await ensureMovieInDb(movie) : movie;
+    setFocusedMovie(ensured);
     setActionsVisible(true);
   }, []);
 
@@ -135,33 +151,45 @@ export function App() {
   const handleToggleMyList = useCallback(
     async (movieId: number) => {
       try {
-        const res = await toggleMyList(movieId);
+        let targetId = movieId;
+        if (targetId < 0 && focusedMovie) {
+          const ensured = await ensureMovieInDb(focusedMovie);
+          setFocusedMovie(ensured);
+          targetId = ensured.id;
+        }
+        const res = await toggleMyList(targetId);
         setFeed(res.feed);
         setFocusedMovie((prev) =>
-          prev && prev.id === movieId ? { ...prev, inMyList: res.inMyList } : prev
+          prev && prev.id === targetId ? { ...prev, inMyList: res.inMyList } : prev
         );
         showToast(res.inMyList ? 'ADDED TO MY LIST' : 'REMOVED FROM MY LIST');
       } catch {
         showToast('COULD NOT UPDATE MY LIST');
       }
     },
-    [showToast]
+    [focusedMovie, showToast]
   );
 
   const handleRate = useCallback(
     async (movieId: number, rating: number) => {
       try {
-        const res = await submitRating(movieId, rating);
+        let targetId = movieId;
+        if (targetId < 0 && focusedMovie) {
+          const ensured = await ensureMovieInDb(focusedMovie);
+          setFocusedMovie(ensured);
+          targetId = ensured.id;
+        }
+        const res = await submitRating(targetId, rating);
         setFeed(res.feed);
         setFocusedMovie((prev) =>
-          prev && prev.id === movieId ? { ...prev, userRating: rating } : prev
+          prev && prev.id === targetId ? { ...prev, userRating: rating } : prev
         );
         showToast(`RATED ${rating}★ — RECOMMENDATIONS RE-RANKED`);
       } catch {
         showToast('FAILED TO SAVE RATING');
       }
     },
-    [showToast]
+    [focusedMovie, showToast]
   );
 
   const handleProgressSync = useCallback(
@@ -173,6 +201,7 @@ export function App() {
       episode: number
     ) => {
       try {
+        if (movieId < 0) return;
         const res = await saveWatchProgress(
           movieId,
           progressSeconds,
@@ -188,7 +217,6 @@ export function App() {
     []
   );
 
-  // D-Pad navigation shared by keyboard arrows and Companion Mobile Remote
   const handleDpadNavigate = useCallback(
     (dir: 'up' | 'down' | 'left' | 'right' | 'ok' | 'back') => {
       if (dir === 'back') {
@@ -244,14 +272,22 @@ export function App() {
         setFocusedMovie(activeRows[prevR].items[targetCol]);
       }
     },
-    [activeCategory, activeRows, focusedMovie, playerState, seriesDetailMovie, sidebarExpanded]
+    [
+      activeCategory,
+      activeRows,
+      focusedMovie,
+      playerState,
+      seriesDetailMovie,
+      sidebarExpanded,
+    ]
   );
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (
         document.activeElement?.tagName === 'INPUT' ||
-        document.activeElement?.tagName === 'TEXTAREA'
+        document.activeElement?.tagName === 'TEXTAREA' ||
+        document.activeElement?.tagName === 'SELECT'
       ) {
         return;
       }
@@ -276,6 +312,7 @@ export function App() {
   }, [handleDpadNavigate]);
 
   const currentHero = seriesDetailMovie ?? focusedMovie ?? feed?.heroFeatured;
+  const isFullCatalogView = activeCategory === 'films' || activeCategory === 'shows';
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-gradient-to-b from-[#0F1429] via-[#101831] to-[#131A35] text-white">
@@ -334,7 +371,6 @@ export function App() {
           <SettingsPanel feed={feed} onClose={() => setActiveCategory('home')} />
         ) : (
           <>
-            {/* Live Aerospace Banner Notice for Live/Audio channels */}
             {(activeCategory === 'live' || activeCategory === 'audio') && (
               <div className="pl-20 lg:pl-24 pr-8 pt-4">
                 <div className="inline-flex items-center gap-2 px-3 py-1 border border-[#F0EA75]/60 bg-[#F0EA75]/10 text-[#F0EA75] text-[11px] font-bold uppercase tracking-wider rounded-[2px]">
@@ -356,22 +392,24 @@ export function App() {
                     ? `S${focusedEpisode.season} EP${focusedEpisode.episode}:`
                     : undefined
                 }
-                onTrailer={(m) =>
+                onTrailer={async (m) => {
+                  const ensured = m.id < 0 ? await ensureMovieInDb(m) : m;
                   setPlayerState({
-                    movie: m,
+                    movie: ensured,
                     mode: 'trailer',
                     season: 1,
                     episode: 1,
-                  })
-                }
-                onWatch={(m) =>
+                  });
+                }}
+                onWatch={async (m) => {
+                  const ensured = m.id < 0 ? await ensureMovieInDb(m) : m;
                   setPlayerState({
-                    movie: m,
+                    movie: ensured,
                     mode: 'watch',
-                    season: focusedEpisode?.season ?? m.lastSeason ?? 1,
-                    episode: focusedEpisode?.episode ?? m.lastEpisode ?? 1,
-                  })
-                }
+                    season: focusedEpisode?.season ?? ensured.lastSeason ?? 1,
+                    episode: focusedEpisode?.episode ?? ensured.lastEpisode ?? 1,
+                  });
+                }}
                 onToggleMyList={handleToggleMyList}
                 onRate={handleRate}
                 onOpenEpisodes={
@@ -415,17 +453,38 @@ export function App() {
                   onSelectMood={setActiveMood}
                 />
 
-                {activeRows.map((row) => (
-                  <ContentRow
-                    key={row.title}
-                    title={row.title}
-                    items={row.items}
+                {isFullCatalogView ? (
+                  <FullCatalogGrid
+                    category={activeCategory === 'shows' ? 'shows' : 'films'}
+                    activeMood={activeMood}
                     focusedId={focusedMovie?.id ?? null}
-                    showProgress={row.showProgress}
+                    tmdbEnabled={feed?.tmdbEnabled ?? false}
                     onFocusItem={setFocusedMovie}
                     onSelectItem={handleSelectMovie}
                   />
-                ))}
+                ) : (
+                  activeRows.map((row) => (
+                    <ContentRow
+                      key={row.title}
+                      title={row.title}
+                      items={row.items}
+                      focusedId={focusedMovie?.id ?? null}
+                      showProgress={row.showProgress}
+                      onFocusItem={setFocusedMovie}
+                      onSelectItem={handleSelectMovie}
+                      onViewAll={
+                        row.allowViewAll
+                          ? () => setActiveCategory('films')
+                          : undefined
+                      }
+                      viewAllLabel={
+                        row.allowViewAll && feed
+                          ? `BROWSE FULL CATALOG (${feed.engineStats.totalMovies.toLocaleString()})`
+                          : undefined
+                      }
+                    />
+                  ))
+                )}
               </>
             )}
           </>

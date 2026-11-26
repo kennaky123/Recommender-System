@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import { getDataStore } from '../db/store';
-import { generateRecommendations } from '../services/recommendationEngine';
+import {
+  generateRecommendations,
+  invalidateRecommendationCache,
+} from '../services/recommendationEngine';
 
 export const userRouter = Router();
 
@@ -8,22 +11,27 @@ userRouter.get('/user/:userId/profile', async (req, res) => {
   try {
     const userId = Number(req.params.userId) || 1;
     const store = getDataStore();
-    const [profile, ratings, watchlist, watchHistory, movies] = await Promise.all([
+    const [profile, ratings, watchlist, watchHistory] = await Promise.all([
       store.getUserProfile(userId),
       store.getUserRatings(userId),
       store.getWatchlist(userId),
       store.getWatchHistory(userId),
-      store.getMovies(),
     ]);
 
-    const movieMap = new Map(movies.map((m) => [m.id, m]));
+    const ratedTitles = await Promise.all(
+      ratings.map(async (r) => {
+        const movie = await store.getMovieById(r.movieId);
+        return {
+          ...r,
+          movieTitle: movie?.title ?? `Movie #${r.movieId}`,
+        };
+      })
+    );
+
     res.json({
       profile,
       storageMode: store.getStorageMode(),
-      ratings: ratings.map((r) => ({
-        ...r,
-        movieTitle: movieMap.get(r.movieId)?.title ?? `Movie #${r.movieId}`,
-      })),
+      ratings: ratedTitles,
       watchlistCount: watchlist.length,
       watchHistoryCount: watchHistory.length,
     });
@@ -64,10 +72,13 @@ userRouter.post('/user/:userId/ratings', async (req, res) => {
     const userId = Number(req.params.userId) || 1;
     const { movieId, rating } = req.body as { movieId?: number; rating?: number };
     if (!movieId || !rating || rating < 0.5 || rating > 5) {
-      return res.status(400).json({ error: 'movieId and rating (0.5..5.0) are required' });
+      return res
+        .status(400)
+        .json({ error: 'movieId and rating (0.5..5.0) are required' });
     }
     const store = getDataStore();
     await store.upsertRating(userId, Number(movieId), Number(rating));
+    invalidateRecommendationCache();
     const feed = await generateRecommendations(store, userId, 'all', 'home');
     res.json({ ok: true, movieId: Number(movieId), rating: Number(rating), feed });
   } catch (err) {

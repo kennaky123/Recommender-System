@@ -5,6 +5,7 @@ import { initDataStore } from './db/store';
 import { moviesRouter } from './routes/movies';
 import { recommendationsRouter } from './routes/recommendations';
 import { userRouter } from './routes/user';
+import { isTmdbConfigured } from './services/tmdbService';
 
 async function bootstrap() {
   const store = await initDataStore();
@@ -14,15 +15,13 @@ async function bootstrap() {
   app.use(express.json());
 
   app.get('/api/health', async (_req, res) => {
-    const [movies, ratings] = await Promise.all([
-      store.getMovies(),
-      store.getAllRatings(),
-    ]);
+    const counts = await store.getCatalogCounts();
     res.json({
       status: 'ok',
       storageMode: store.getStorageMode(),
-      movieCount: movies.length,
-      ratingCount: ratings.length,
+      tmdbEnabled: isTmdbConfigured(),
+      movieCount: counts.movieCount,
+      ratingCount: counts.ratingCount,
     });
   });
 
@@ -32,7 +31,7 @@ async function bootstrap() {
 
   app.listen(PORT, () => {
     console.log(
-      `[SPACE-X VOD API] Listening on http://localhost:${PORT} (storage: ${store.getStorageMode()})`
+      `[SPACE-X VOD API] Listening on http://localhost:${PORT} (storage: ${store.getStorageMode()}, tmdb: ${isTmdbConfigured()})`
     );
   });
 }

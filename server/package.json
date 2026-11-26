@@ -10,6 +10,7 @@
     "db:seed:movielens": "tsx src/db/seedMovielens.ts"
   },
   "dependencies": {
+    "adm-zip": "^0.6.1",
     "cors": "^2.8.5",
     "csv-parse": "^5.6.0",
     "dotenv": "^16.4.7",
@@ -17,6 +18,7 @@
     "pg": "^8.13.3"
   },
   "devDependencies": {
+    "@types/adm-zip": "^0.5.8",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.5",

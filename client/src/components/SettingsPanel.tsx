@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Database, Cpu, Star, X } from '@phosphor-icons/react';
+import { Database, Cpu, Star, X, Globe } from '@phosphor-icons/react';
 import { fetchUserProfile } from '../api';
 import { RecommendationFeed, UserProfileResponse } from '../types';
 
@@ -94,12 +94,33 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 : 'In-Memory Fallback'}
             </strong>
           </p>
-          <p className="text-[12px] text-[#87899D] mt-2 leading-relaxed">
-            Catalog size: {feed.engineStats.totalMovies} titles •{' '}
-            {feed.engineStats.totalRatings} community ratings. To load the full
-            MovieLens Latest Small CSVs into PostgreSQL, run{' '}
-            <code className="text-white">npm run db:up && npm run db:migrate && npm run db:seed:movielens</code>.
+          <p className="text-[12px] text-[#87899D] mt-2 leading-relaxed tabular-nums">
+            Catalog size:{' '}
+            <strong className="text-white">
+              {feed.engineStats.totalMovies.toLocaleString()}
+            </strong>{' '}
+            titles •{' '}
+            <strong className="text-white">
+              {feed.engineStats.totalRatings.toLocaleString()}
+            </strong>{' '}
+            community ratings.
           </p>
+          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#373B47] text-[11px]">
+            <Globe
+              size={14}
+              className={feed.tmdbEnabled ? 'text-[#F0EA75]' : 'text-[#87899D]'}
+            />
+            <span className="text-[#C8D0E0]">
+              TMDB Global Search:{' '}
+              <strong
+                className={feed.tmdbEnabled ? 'text-[#F0EA75]' : 'text-white'}
+              >
+                {feed.tmdbEnabled
+                  ? 'LIVE CONNECTED'
+                  : 'NOT SET (add TMDB_API_KEY in server/.env)'}
+              </strong>
+            </span>
+          </div>
         </div>
 
         {/* Hybrid Weights */}

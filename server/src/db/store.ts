@@ -9,18 +9,45 @@ import {
   SEED_WATCH_HISTORY,
 } from './seedData';
 import {
+  CatalogSort,
   MoodTag,
   Movie,
   RatingRecord,
+  RecommendedMovie,
   UserProfile,
   WatchProgressRecord,
 } from '../types';
 
+export interface SearchPaginatedParams {
+  userId?: number;
+  query?: string;
+  mood?: MoodTag;
+  genre?: string;
+  mediaType?: 'all' | 'movie' | 'tv';
+  sort?: CatalogSort;
+  page?: number;
+  limit?: number;
+}
+
 export interface DataStore {
   getStorageMode(): 'postgres' | 'memory-fallback';
+  getCatalogCounts(): Promise<{ movieCount: number; ratingCount: number }>;
   getMovies(): Promise<Movie[]>;
   getMovieById(id: number): Promise<Movie | null>;
   searchMovies(query: string, mood?: MoodTag, genre?: string): Promise<Movie[]>;
+  searchMoviesPaginated(params: SearchPaginatedParams): Promise<{
+    items: RecommendedMovie[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }>;
+  upsertExternalMovie(movie: Omit<Movie, 'id'>): Promise<Movie>;
+  updateMovieEnrichment(
+    id: number,
+    fields: Partial<
+      Pick<Movie, 'backdropUrl' | 'synopsis' | 'runtimeMinutes' | 'trailerYoutubeId' | 'seasonsCount'>
+    >
+  ): Promise<void>;
   getAllRatings(): Promise<RatingRecord[]>;
   getUserRatings(userId: number): Promise<RatingRecord[]>;
   upsertRating(userId: number, movieId: number, rating: number): Promise<void>;
@@ -39,9 +66,13 @@ export interface DataStore {
 }
 
 function mapMovieRow(row: Record<string, unknown>): Movie {
+  const movielensId =
+    row.movielens_id !== null && row.movielens_id !== undefined
+      ? Number(row.movielens_id)
+      : null;
   return {
     id: Number(row.id),
-    movielensId: row.movielens_id !== null && row.movielens_id !== undefined ? Number(row.movielens_id) : null,
+    movielensId,
     tmdbId: Number(row.tmdb_id),
     imdbId: (row.imdb_id as string | null) ?? null,
     mediaType: (row.media_type as Movie['mediaType']) || 'movie',
@@ -59,6 +90,7 @@ function mapMovieRow(row: Record<string, unknown>): Movie {
     trailerYoutubeId: (row.trailer_youtube_id as string | null) ?? null,
     seasonsCount: row.seasons_count ? Number(row.seasons_count) : 1,
     episodes: Array.isArray(row.episodes) ? (row.episodes as Movie['episodes']) : [],
+    source: movielensId ? 'movielens' : 'local',
   };
 }
 
@@ -166,6 +198,18 @@ class PostgresStore implements DataStore {
     return 'postgres';
   }
 
+  async getCatalogCounts(): Promise<{ movieCount: number; ratingCount: number }> {
+    const { rows } = await pool.query(
+      `SELECT
+        (SELECT COUNT(*)::int FROM movies) AS movie_count,
+        (SELECT COUNT(*)::int FROM ratings) AS rating_count`
+    );
+    return {
+      movieCount: Number(rows[0]?.movie_count ?? 0),
+      ratingCount: Number(rows[0]?.rating_count ?? 0),
+    };
+  }
+
   async getMovies(): Promise<Movie[]> {
     const { rows } = await pool.query('SELECT * FROM movies ORDER BY id ASC');
     return rows.map(mapMovieRow);
@@ -177,23 +221,234 @@ class PostgresStore implements DataStore {
   }
 
   async searchMovies(query: string, mood?: MoodTag, genre?: string): Promise<Movie[]> {
-    const q = query.trim().toLowerCase();
-    const movies = await this.getMovies();
-    return movies.filter((m) => {
-      const matchesQ =
-        !q ||
-        m.title.toLowerCase().includes(q) ||
-        m.synopsis.toLowerCase().includes(q) ||
-        m.genres.some((g) => g.toLowerCase().includes(q)) ||
-        m.tags.some((t) => t.toLowerCase().includes(q)) ||
-        m.provider.toLowerCase().includes(q);
-      const matchesMood = !mood || mood === 'all' || m.moods.includes(mood);
-      const matchesGenre =
-        !genre ||
-        genre === 'ALL' ||
-        m.genres.some((g) => g.toLowerCase() === genre.toLowerCase());
-      return matchesQ && matchesMood && matchesGenre;
+    const res = await this.searchMoviesPaginated({
+      query,
+      mood,
+      genre,
+      page: 1,
+      limit: 48,
     });
+    return res.items;
+  }
+
+  async searchMoviesPaginated(params: SearchPaginatedParams): Promise<{
+    items: RecommendedMovie[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }> {
+    const userId = params.userId ?? 1;
+    const query = (params.query ?? '').trim();
+    const mood = params.mood && params.mood !== 'all' ? params.mood : null;
+    const genre =
+      params.genre && params.genre.toUpperCase() !== 'ALL'
+        ? params.genre.toUpperCase()
+        : null;
+    const mediaType =
+      params.mediaType && params.mediaType !== 'all' ? params.mediaType : null;
+    const sort: CatalogSort = params.sort ?? 'popular';
+    const limit = Math.max(1, Math.min(60, params.limit ?? 24));
+    const page = Math.max(1, params.page ?? 1);
+    const offset = (page - 1) * limit;
+
+    const conditions: string[] = [];
+    const values: unknown[] = [];
+
+    if (query) {
+      values.push(`%${query}%`);
+      const p = `$${values.length}`;
+      conditions.push(
+        `(m.title ILIKE ${p} OR m.synopsis ILIKE ${p} OR m.provider ILIKE ${p} OR EXISTS (SELECT 1 FROM unnest(m.genres) g WHERE g ILIKE ${p}) OR EXISTS (SELECT 1 FROM unnest(m.tags) t WHERE t ILIKE ${p}))`
+      );
+    }
+    if (mood) {
+      values.push(mood);
+      conditions.push(`$${values.length} = ANY(m.moods)`);
+    }
+    if (genre) {
+      values.push(genre);
+      conditions.push(
+        `EXISTS (SELECT 1 FROM unnest(m.genres) g WHERE UPPER(g) = $${values.length})`
+      );
+    }
+    if (mediaType) {
+      values.push(mediaType);
+      conditions.push(`m.media_type = $${values.length}`);
+    }
+
+    const whereClause =
+      conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const countRes = await pool.query(
+      `SELECT COUNT(*)::int AS total FROM movies m ${whereClause}`,
+      values
+    );
+    const total = Number(countRes.rows[0]?.total ?? 0);
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+
+    const orderBy =
+      sort === 'newest'
+        ? 'm.release_year DESC NULLS LAST, m.id ASC'
+        : sort === 'title'
+        ? 'm.title ASC, m.id ASC'
+        : '(CASE WHEN m.id <= 16 THEN 1 ELSE 0 END) DESC, COALESCE(rs.rating_count, 0) DESC, m.id ASC';
+
+    const queryValues = [...values, userId, limit, offset];
+    const uidParam = `$${values.length + 1}`;
+    const limitParam = `$${values.length + 2}`;
+    const offsetParam = `$${values.length + 3}`;
+
+    const sql =
+      sort === 'popular'
+        ? `
+      WITH filtered AS (
+        SELECT m.* FROM movies m ${whereClause}
+      ),
+      rating_stats AS (
+        SELECT r.movie_id, ROUND(AVG(r.rating)::numeric, 2) AS avg_rating, COUNT(*)::int AS rating_count
+        FROM ratings r
+        INNER JOIN filtered f ON f.id = r.movie_id
+        GROUP BY r.movie_id
+      )
+      SELECT
+        m.*,
+        COALESCE(rs.avg_rating, 4.0)::float AS avg_rating,
+        COALESCE(rs.rating_count, 0)::int AS rating_count,
+        ur.rating::float AS user_rating,
+        (uw.movie_id IS NOT NULL) AS in_my_list,
+        wh.progress_percent::float AS progress_percent,
+        wh.last_season,
+        wh.last_episode
+      FROM filtered m
+      LEFT JOIN rating_stats rs ON rs.movie_id = m.id
+      LEFT JOIN ratings ur ON ur.movie_id = m.id AND ur.user_id = ${uidParam}
+      LEFT JOIN user_watchlist uw ON uw.movie_id = m.id AND uw.user_id = ${uidParam}
+      LEFT JOIN watch_history wh ON wh.movie_id = m.id AND wh.user_id = ${uidParam}
+      ORDER BY ${orderBy}
+      LIMIT ${limitParam} OFFSET ${offsetParam}`
+        : `
+      WITH paged AS (
+        SELECT m.* FROM movies m ${whereClause}
+        ORDER BY ${orderBy}
+        LIMIT ${limitParam} OFFSET ${offsetParam}
+      ),
+      rating_stats AS (
+        SELECT r.movie_id, ROUND(AVG(r.rating)::numeric, 2) AS avg_rating, COUNT(*)::int AS rating_count
+        FROM ratings r
+        INNER JOIN paged p ON p.id = r.movie_id
+        GROUP BY r.movie_id
+      )
+      SELECT
+        m.*,
+        COALESCE(rs.avg_rating, 4.0)::float AS avg_rating,
+        COALESCE(rs.rating_count, 0)::int AS rating_count,
+        ur.rating::float AS user_rating,
+        (uw.movie_id IS NOT NULL) AS in_my_list,
+        wh.progress_percent::float AS progress_percent,
+        wh.last_season,
+        wh.last_episode
+      FROM paged m
+      LEFT JOIN rating_stats rs ON rs.movie_id = m.id
+      LEFT JOIN ratings ur ON ur.movie_id = m.id AND ur.user_id = ${uidParam}
+      LEFT JOIN user_watchlist uw ON uw.movie_id = m.id AND uw.user_id = ${uidParam}
+      LEFT JOIN watch_history wh ON wh.movie_id = m.id AND wh.user_id = ${uidParam}
+      ORDER BY ${orderBy}`;
+
+    const { rows } = await pool.query(sql, queryValues);
+    const items: RecommendedMovie[] = rows.map((row) => {
+      const movie = mapMovieRow(row);
+      const avg = Number(row.avg_rating ?? 4.0);
+      const cnt = Number(row.rating_count ?? 0);
+      const score = Math.round(Math.min(99, Math.max(75, 68 + (avg / 5) * 28)));
+      return {
+        ...movie,
+        matchScore: score,
+        matchReason:
+          cnt > 0
+            ? `${avg.toFixed(1)}★ (${cnt} MOVIELENS RATINGS)`
+            : `TMDB #${movie.tmdbId} CATALOG`,
+        userRating:
+          row.user_rating !== null && row.user_rating !== undefined
+            ? Number(row.user_rating)
+            : undefined,
+        inMyList: Boolean(row.in_my_list),
+        progressPercent:
+          row.progress_percent !== null && row.progress_percent !== undefined
+            ? Number(row.progress_percent)
+            : undefined,
+        lastSeason: row.last_season ? Number(row.last_season) : undefined,
+        lastEpisode: row.last_episode ? Number(row.last_episode) : undefined,
+        communityRating: avg,
+        ratingCount: cnt,
+      };
+    });
+
+    return { items, total, page, totalPages };
+  }
+
+  async upsertExternalMovie(movie: Omit<Movie, 'id'>): Promise<Movie> {
+    const existing = await pool.query(
+      'SELECT * FROM movies WHERE tmdb_id = $1 AND media_type = $2 LIMIT 1',
+      [movie.tmdbId, movie.mediaType]
+    );
+    if (existing.rows.length > 0) {
+      return mapMovieRow(existing.rows[0]);
+    }
+
+    const { rows } = await pool.query(
+      `INSERT INTO movies (
+        movielens_id, tmdb_id, imdb_id, media_type, title, provider,
+        release_year, runtime_minutes, age_rating, resolution, genres, tags, moods,
+        synopsis, backdrop_url, trailer_youtube_id, seasons_count, episodes
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18::jsonb)
+      RETURNING *`,
+      [
+        movie.movielensId ?? null,
+        movie.tmdbId,
+        movie.imdbId ?? null,
+        movie.mediaType,
+        movie.title,
+        movie.provider,
+        movie.year,
+        movie.runtimeMinutes,
+        movie.ageRating,
+        movie.resolution,
+        movie.genres,
+        movie.tags,
+        movie.moods,
+        movie.synopsis,
+        movie.backdropUrl,
+        movie.trailerYoutubeId ?? null,
+        movie.seasonsCount ?? 1,
+        JSON.stringify(movie.episodes ?? []),
+      ]
+    );
+    return mapMovieRow(rows[0]);
+  }
+
+  async updateMovieEnrichment(
+    id: number,
+    fields: Partial<
+      Pick<Movie, 'backdropUrl' | 'synopsis' | 'runtimeMinutes' | 'trailerYoutubeId' | 'seasonsCount'>
+    >
+  ): Promise<void> {
+    await pool.query(
+      `UPDATE movies SET
+        backdrop_url = COALESCE($2, backdrop_url),
+        synopsis = COALESCE($3, synopsis),
+        runtime_minutes = COALESCE($4, runtime_minutes),
+        trailer_youtube_id = COALESCE($5, trailer_youtube_id),
+        seasons_count = COALESCE($6, seasons_count)
+      WHERE id = $1`,
+      [
+        id,
+        fields.backdropUrl ?? null,
+        fields.synopsis ?? null,
+        fields.runtimeMinutes ?? null,
+        fields.trailerYoutubeId ?? null,
+        fields.seasonsCount ?? null,
+      ]
+    );
   }
 
   async getAllRatings(): Promise<RatingRecord[]> {
@@ -358,6 +613,10 @@ class InMemoryFallbackStore implements DataStore {
     return 'memory-fallback';
   }
 
+  async getCatalogCounts(): Promise<{ movieCount: number; ratingCount: number }> {
+    return { movieCount: this.movies.length, ratingCount: this.ratings.length };
+  }
+
   async getMovies(): Promise<Movie[]> {
     return this.movies;
   }
@@ -367,8 +626,30 @@ class InMemoryFallbackStore implements DataStore {
   }
 
   async searchMovies(query: string, mood?: MoodTag, genre?: string): Promise<Movie[]> {
-    const q = query.trim().toLowerCase();
-    return this.movies.filter((m) => {
+    const res = await this.searchMoviesPaginated({ query, mood, genre, limit: 48 });
+    return res.items;
+  }
+
+  async searchMoviesPaginated(params: SearchPaginatedParams): Promise<{
+    items: RecommendedMovie[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }> {
+    const userId = params.userId ?? 1;
+    const q = (params.query ?? '').trim().toLowerCase();
+    const mood = params.mood && params.mood !== 'all' ? params.mood : null;
+    const genre =
+      params.genre && params.genre.toUpperCase() !== 'ALL'
+        ? params.genre.toUpperCase()
+        : null;
+    const mediaType =
+      params.mediaType && params.mediaType !== 'all' ? params.mediaType : null;
+    const sort: CatalogSort = params.sort ?? 'popular';
+    const limit = Math.max(1, Math.min(60, params.limit ?? 24));
+    const page = Math.max(1, params.page ?? 1);
+
+    const filtered = this.movies.filter((m) => {
       const matchesQ =
         !q ||
         m.title.toLowerCase().includes(q) ||
@@ -376,13 +657,77 @@ class InMemoryFallbackStore implements DataStore {
         m.genres.some((g) => g.toLowerCase().includes(q)) ||
         m.tags.some((t) => t.toLowerCase().includes(q)) ||
         m.provider.toLowerCase().includes(q);
-      const matchesMood = !mood || mood === 'all' || m.moods.includes(mood);
-      const matchesGenre =
-        !genre ||
-        genre === 'ALL' ||
-        m.genres.some((g) => g.toLowerCase() === genre.toLowerCase());
-      return matchesQ && matchesMood && matchesGenre;
+      const matchesMood = !mood || m.moods.includes(mood);
+      const matchesGenre = !genre || m.genres.some((g) => g.toUpperCase() === genre);
+      const matchesMedia = !mediaType || m.mediaType === mediaType;
+      return matchesQ && matchesMood && matchesGenre && matchesMedia;
     });
+
+    const watchlistSet = new Set(this.watchlist.get(userId) ?? []);
+    const userRatings = new Map(
+      this.ratings.filter((r) => r.userId === userId).map((r) => [r.movieId, r.rating])
+    );
+    const histMap = new Map(
+      (this.watchHistory.get(userId) ?? []).map((h) => [h.movieId, h])
+    );
+
+    const enriched: RecommendedMovie[] = filtered.map((m) => {
+      const rs = this.ratings.filter((r) => r.movieId === m.id);
+      const cnt = rs.length;
+      const avg = cnt > 0 ? rs.reduce((s, r) => s + r.rating, 0) / cnt : 4.2;
+      const h = histMap.get(m.id);
+      return {
+        ...m,
+        matchScore: Math.round(Math.min(99, 68 + (avg / 5) * 28)),
+        matchReason: cnt > 0 ? `${avg.toFixed(1)}★ (${cnt} RATINGS)` : `TMDB #${m.tmdbId}`,
+        userRating: userRatings.get(m.id),
+        inMyList: watchlistSet.has(m.id),
+        progressPercent: h?.progressPercent,
+        lastSeason: h?.lastSeason,
+        lastEpisode: h?.lastEpisode,
+        communityRating: Number(avg.toFixed(2)),
+        ratingCount: cnt,
+      };
+    });
+
+    enriched.sort((a, b) => {
+      if (sort === 'newest') return b.year - a.year;
+      if (sort === 'title') return a.title.localeCompare(b.title);
+      return b.ratingCount - a.ratingCount || a.id - b.id;
+    });
+
+    const total = enriched.length;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const start = (page - 1) * limit;
+    return {
+      items: enriched.slice(start, start + limit),
+      total,
+      page,
+      totalPages,
+    };
+  }
+
+  async upsertExternalMovie(movie: Omit<Movie, 'id'>): Promise<Movie> {
+    const existing = this.movies.find(
+      (m) => m.tmdbId === movie.tmdbId && m.mediaType === movie.mediaType
+    );
+    if (existing) return existing;
+    const nextId = Math.max(0, ...this.movies.map((m) => m.id)) + 1;
+    const created: Movie = { ...movie, id: nextId };
+    this.movies.push(created);
+    return created;
+  }
+
+  async updateMovieEnrichment(
+    id: number,
+    fields: Partial<
+      Pick<Movie, 'backdropUrl' | 'synopsis' | 'runtimeMinutes' | 'trailerYoutubeId' | 'seasonsCount'>
+    >
+  ): Promise<void> {
+    const idx = this.movies.findIndex((m) => m.id === id);
+    if (idx >= 0) {
+      this.movies[idx] = { ...this.movies[idx], ...fields };
+    }
   }
 
   async getAllRatings(): Promise<RatingRecord[]> {
@@ -489,7 +834,7 @@ export async function initDataStore(): Promise<DataStore> {
     return activeStore;
   } catch (err) {
     console.warn(
-      `[DB] PostgreSQL unavailable (${(err as Error).message}). Using InMemoryFallbackStore. Run "docker compose up -d && npm run db:migrate" to persist in PostgreSQL.`
+      `[DB] PostgreSQL unavailable (${(err as Error).message}). Using InMemoryFallbackStore.`
     );
     activeStore = new InMemoryFallbackStore();
     return activeStore;

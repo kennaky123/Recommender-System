@@ -1,4 +1,5 @@
 import React from 'react';
+import { ArrowRight } from '@phosphor-icons/react';
 import { RecommendedMovie } from '../types';
 import { ProviderLogo } from './ProviderLogo';
 
@@ -9,6 +10,8 @@ interface ContentRowProps {
   showProgress?: boolean;
   onFocusItem: (movie: RecommendedMovie) => void;
   onSelectItem: (movie: RecommendedMovie) => void;
+  onViewAll?: () => void;
+  viewAllLabel?: string;
 }
 
 export const ContentRow: React.FC<ContentRowProps> = ({
@@ -18,14 +21,29 @@ export const ContentRow: React.FC<ContentRowProps> = ({
   showProgress = false,
   onFocusItem,
   onSelectItem,
+  onViewAll,
+  viewAllLabel,
 }) => {
   if (items.length === 0) return null;
 
   return (
     <section className="relative z-10 pl-20 lg:pl-24 pr-4 pb-6">
-      <h2 className="text-[13px] font-bold uppercase tracking-[0.06em] text-white mb-3">
-        {title}
-      </h2>
+      <div className="flex items-center justify-between pr-4 mb-3">
+        <h2 className="text-[13px] font-bold uppercase tracking-[0.06em] text-white">
+          {title}
+        </h2>
+
+        {onViewAll && (
+          <button
+            type="button"
+            onClick={onViewAll}
+            className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[#B8C0D4] hover:text-[#F0EA75] transition-colors cursor-pointer"
+          >
+            <span>{viewAllLabel ?? 'BROWSE ALL'}</span>
+            <ArrowRight size={13} weight="bold" />
+          </button>
+        )}
+      </div>
 
       <div className="flex items-stretch gap-3.5 overflow-x-auto no-scrollbar pb-2 pr-8">
         {items.map((movie) => {
@@ -76,7 +94,9 @@ export const ContentRow: React.FC<ContentRowProps> = ({
                 <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-white/20">
                   <div
                     className="h-full bg-[#F0EA75]"
-                    style={{ width: `${Math.min(100, Math.max(4, movie.progressPercent))}%` }}
+                    style={{
+                      width: `${Math.min(100, Math.max(4, movie.progressPercent))}%`,
+                    }}
                   />
                 </div>
               )}

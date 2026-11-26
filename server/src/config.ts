@@ -8,3 +8,4 @@ export const DATABASE_URL =
   process.env.DATABASE_URL ||
   'postgresql://spacex:spacex_secret@localhost:5433/spacex_vod';
 export const TMDB_API_KEY = process.env.TMDB_API_KEY || '';
+export const TMDB_ACCESS_TOKEN = process.env.TMDB_ACCESS_TOKEN || '';

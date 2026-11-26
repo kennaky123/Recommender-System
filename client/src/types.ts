@@ -21,6 +21,7 @@ export type NavCategory =
   | 'live'
   | 'audio'
   | 'settings';
+export type CatalogSort = 'popular' | 'newest' | 'title';
 
 export type PlaybackDevice =
   | 'CABIN DISPLAY 8K'
@@ -56,6 +57,7 @@ export interface RecommendedMovie {
   trailerYoutubeId?: string | null;
   seasonsCount?: number;
   episodes?: Episode[];
+  source?: 'local' | 'movielens' | 'tmdb';
   matchScore: number;
   matchReason: string;
   userRating?: number;
@@ -78,6 +80,7 @@ export interface RecommendationFeed {
   continueWatching: RecommendedMovie[];
   myList: RecommendedMovie[];
   storageMode: 'postgres' | 'memory-fallback';
+  tmdbEnabled: boolean;
   engineStats: {
     totalMovies: number;
     totalRatings: number;
@@ -88,6 +91,24 @@ export interface RecommendationFeed {
       popularityPrior: number;
     };
   };
+}
+
+export interface PaginatedCatalogResponse {
+  items: RecommendedMovie[];
+  total: number;
+  page: number;
+  totalPages: number;
+  tmdbEnabled: boolean;
+  source: string;
+}
+
+export interface SearchCatalogResponse {
+  movies: RecommendedMovie[];
+  total: number;
+  page: number;
+  totalPages: number;
+  tmdbEnabled: boolean;
+  sourcesUsed: string[];
 }
 
 export interface UserProfileResponse {
