@@ -6,6 +6,8 @@ import {
   AuthUserRecord,
   CatalogSort,
   MovieDTO,
+  normalizeMoodTags,
+  normalizeUserRole,
   PaginatedCatalogResult,
   RatingRecord,
   RecommendedMovieDTO,
@@ -416,7 +418,7 @@ export class PostgresMediaRepository implements IMediaRepository {
 
   public async getUserProfile(userId: number): Promise<UserProfile> {
     const { rows } = await this.pool.query(
-      'SELECT id, name, email, avatar_url FROM users WHERE id = $1',
+      'SELECT id, name, email, avatar_url, role, onboarding_completed, preferred_genres, preferred_moods FROM users WHERE id = $1',
       [userId]
     );
     if (rows.length > 0) {
@@ -427,9 +429,20 @@ export class PostgresMediaRepository implements IMediaRepository {
         avatarUrl: String(
           rows[0].avatar_url || '/backdrops/claude-patterson.jpg'
         ),
+        role: normalizeUserRole(rows[0].role),
+        onboardingCompleted: Boolean(rows[0].onboarding_completed),
+        preferredGenres: Array.isArray(rows[0].preferred_genres)
+          ? rows[0].preferred_genres.map(String)
+          : [],
+        preferredMoods: normalizeMoodTags(rows[0].preferred_moods),
       };
     }
-    return SEED_USERS[0];
+    const fallback = SEED_USERS[0];
+    return {
+      ...fallback,
+      preferredGenres: [...fallback.preferredGenres],
+      preferredMoods: [...fallback.preferredMoods],
+    };
   }
 
   private mapAuthRow(row: Record<string, unknown>): AuthUserRecord {
@@ -439,12 +452,18 @@ export class PostgresMediaRepository implements IMediaRepository {
       email: String(row.email || ''),
       passwordHash: String(row.password_hash || ''),
       avatarUrl: String(row.avatar_url || '/backdrops/claude-patterson.jpg'),
+      role: normalizeUserRole(row.role),
+      onboardingCompleted: Boolean(row.onboarding_completed),
+      preferredGenres: Array.isArray(row.preferred_genres)
+        ? row.preferred_genres.map(String)
+        : [],
+      preferredMoods: normalizeMoodTags(row.preferred_moods),
     };
   }
 
   public async findUserByEmail(email: string): Promise<AuthUserRecord | null> {
     const { rows } = await this.pool.query(
-      'SELECT id, name, email, password_hash, avatar_url FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1',
+      'SELECT id, name, email, password_hash, avatar_url, role, onboarding_completed, preferred_genres, preferred_moods FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1',
       [email]
     );
     return rows.length > 0 ? this.mapAuthRow(rows[0]) : null;
@@ -452,7 +471,7 @@ export class PostgresMediaRepository implements IMediaRepository {
 
   public async findUserById(id: number): Promise<AuthUserRecord | null> {
     const { rows } = await this.pool.query(
-      'SELECT id, name, email, password_hash, avatar_url FROM users WHERE id = $1 LIMIT 1',
+      'SELECT id, name, email, password_hash, avatar_url, role, onboarding_completed, preferred_genres, preferred_moods FROM users WHERE id = $1 LIMIT 1',
       [id]
     );
     return rows.length > 0 ? this.mapAuthRow(rows[0]) : null;
@@ -465,9 +484,9 @@ export class PostgresMediaRepository implements IMediaRepository {
     avatarUrl: string;
   }): Promise<AuthUserRecord> {
     const { rows } = await this.pool.query(
-      `INSERT INTO users (name, email, password_hash, avatar_url)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, name, email, password_hash, avatar_url`,
+      `INSERT INTO users (name, email, password_hash, avatar_url, role, onboarding_completed, preferred_genres, preferred_moods)
+       VALUES ($1, $2, $3, $4, 'user', FALSE, '{}'::text[], '{}'::text[])
+       RETURNING id, name, email, password_hash, avatar_url, role, onboarding_completed, preferred_genres, preferred_moods`,
       [input.name, input.email, input.passwordHash, input.avatarUrl]
     );
     return this.mapAuthRow(rows[0]);

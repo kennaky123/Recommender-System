@@ -43,6 +43,10 @@ export class InMemoryMediaRepository implements IMediaRepository {
       email: u.id === 1 ? 'claude@spacex.vod' : `crew${u.id}@spacex.vod`,
       passwordHash: u.id === 1 ? hasher.hash('SpaceX@2026') : '',
       avatarUrl: u.avatarUrl,
+      role: u.role,
+      onboardingCompleted: u.onboardingCompleted,
+      preferredGenres: [...u.preferredGenres],
+      preferredMoods: [...u.preferredMoods],
     }));
     this.ratings = structuredClone(SEED_RATINGS);
 
@@ -263,6 +267,14 @@ export class InMemoryMediaRepository implements IMediaRepository {
     return record;
   }
 
+  private cloneAuthUser(u: AuthUserRecord): AuthUserRecord {
+    return {
+      ...u,
+      preferredGenres: [...u.preferredGenres],
+      preferredMoods: [...u.preferredMoods],
+    };
+  }
+
   public async getUserProfile(userId: number): Promise<UserProfile> {
     const u = this.authUsers.find((x) => x.id === userId) ?? this.authUsers[0];
     return {
@@ -270,18 +282,22 @@ export class InMemoryMediaRepository implements IMediaRepository {
       name: u.name,
       email: u.email,
       avatarUrl: u.avatarUrl,
+      role: u.role,
+      onboardingCompleted: u.onboardingCompleted,
+      preferredGenres: [...u.preferredGenres],
+      preferredMoods: [...u.preferredMoods],
     };
   }
 
   public async findUserByEmail(email: string): Promise<AuthUserRecord | null> {
     const lower = email.trim().toLowerCase();
-    return (
-      this.authUsers.find((u) => u.email.toLowerCase() === lower) ?? null
-    );
+    const found = this.authUsers.find((u) => u.email.toLowerCase() === lower);
+    return found ? this.cloneAuthUser(found) : null;
   }
 
   public async findUserById(id: number): Promise<AuthUserRecord | null> {
-    return this.authUsers.find((u) => u.id === id) ?? null;
+    const found = this.authUsers.find((u) => u.id === id);
+    return found ? this.cloneAuthUser(found) : null;
   }
 
   public async createAuthUser(input: {
@@ -297,8 +313,12 @@ export class InMemoryMediaRepository implements IMediaRepository {
       email: input.email,
       passwordHash: input.passwordHash,
       avatarUrl: input.avatarUrl,
+      role: 'user',
+      onboardingCompleted: false,
+      preferredGenres: [],
+      preferredMoods: [],
     };
     this.authUsers.push(created);
-    return created;
+    return this.cloneAuthUser(created);
   }
 }

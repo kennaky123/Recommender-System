@@ -17,6 +17,8 @@ import {
   AuthUserRecord,
   CatalogSort,
   MovieDTO,
+  normalizeMoodTags,
+  normalizeUserRole,
   PaginatedCatalogResult,
   RatingRecord,
   RecommendedMovieDTO,
@@ -472,6 +474,10 @@ export class DrizzleMediaRepository implements IMediaRepository {
         name: users.name,
         email: users.email,
         avatarUrl: users.avatarUrl,
+        role: users.role,
+        onboardingCompleted: users.onboardingCompleted,
+        preferredGenres: users.preferredGenres,
+        preferredMoods: users.preferredMoods,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -483,9 +489,18 @@ export class DrizzleMediaRepository implements IMediaRepository {
         name: rows[0].name,
         email: rows[0].email ?? null,
         avatarUrl: rows[0].avatarUrl || '/backdrops/claude-patterson.jpg',
+        role: normalizeUserRole(rows[0].role),
+        onboardingCompleted: Boolean(rows[0].onboardingCompleted),
+        preferredGenres: [...(rows[0].preferredGenres ?? [])],
+        preferredMoods: normalizeMoodTags(rows[0].preferredMoods),
       };
     }
-    return SEED_USERS[0];
+    const fallback = SEED_USERS[0];
+    return {
+      ...fallback,
+      preferredGenres: [...fallback.preferredGenres],
+      preferredMoods: [...fallback.preferredMoods],
+    };
   }
 
   private mapAuthRow(row: UserRow): AuthUserRecord {
@@ -495,6 +510,10 @@ export class DrizzleMediaRepository implements IMediaRepository {
       email: row.email || '',
       passwordHash: row.passwordHash || '',
       avatarUrl: row.avatarUrl || '/backdrops/claude-patterson.jpg',
+      role: normalizeUserRole(row.role),
+      onboardingCompleted: Boolean(row.onboardingCompleted),
+      preferredGenres: [...(row.preferredGenres ?? [])],
+      preferredMoods: normalizeMoodTags(row.preferredMoods),
     };
   }
 
@@ -529,6 +548,10 @@ export class DrizzleMediaRepository implements IMediaRepository {
         email: input.email,
         passwordHash: input.passwordHash,
         avatarUrl: input.avatarUrl,
+        role: 'user',
+        onboardingCompleted: false,
+        preferredGenres: [],
+        preferredMoods: [],
       })
       .returning();
 
