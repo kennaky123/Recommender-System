@@ -10,9 +10,9 @@ import { RecommendationController } from '../controllers/RecommendationControlle
 import { UserController } from '../controllers/UserController';
 import { DatabaseConnection } from '../repositories/DatabaseConnection';
 import { DatabaseSeeder } from '../repositories/DatabaseSeeder';
+import { DrizzleMediaRepository } from '../repositories/DrizzleMediaRepository';
 import { IMediaRepository } from '../repositories/IMediaRepository';
 import { InMemoryMediaRepository } from '../repositories/InMemoryMediaRepository';
-import { PostgresMediaRepository } from '../repositories/PostgresMediaRepository';
 import { AuthService } from '../services/auth/AuthService';
 import { JwtTokenProvider } from '../services/auth/JwtTokenProvider';
 import { ScryptPasswordHasher } from '../services/auth/ScryptPasswordHasher';
@@ -53,8 +53,8 @@ export class ServerApplication {
       await db.testConnection();
       await seeder.applySchema();
       await seeder.seedDefaultsIfEmpty();
-      console.log('[DB] Connected to PostgreSQL via PostgresMediaRepository.');
-      return new PostgresMediaRepository(db);
+      console.log('[DB] Connected to PostgreSQL via DrizzleMediaRepository (Drizzle ORM).');
+      return new DrizzleMediaRepository(db);
     } catch (err) {
       console.warn(
         `[DB] PostgreSQL unavailable (${(err as Error).message}). Using InMemoryMediaRepository.`

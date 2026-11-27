@@ -1,3 +1,4 @@
+import { MovieRow } from '../db/drizzleSchema';
 import { MediaEntity } from './MediaEntity';
 import { MovieEntity } from './MovieEntity';
 import { SeriesEntity } from './SeriesEntity';
@@ -93,6 +94,34 @@ export class MediaFactory {
       trailerYoutubeId: (row.trailer_youtube_id as string | null) ?? null,
       seasonsCount: row.seasons_count ? Number(row.seasons_count) : 1,
       episodes: Array.isArray(row.episodes) ? (row.episodes as Episode[]) : [],
+      source: movielensId ? 'movielens' : 'local',
+    };
+
+    return MediaFactory.fromDTO(dto);
+  }
+
+  public static fromDrizzleRow(row: MovieRow): MediaEntity {
+    const movielensId = row.movielensId ?? null;
+    const dto: MovieDTO = {
+      id: row.id,
+      movielensId,
+      tmdbId: row.tmdbId,
+      imdbId: row.imdbId ?? null,
+      mediaType: (row.mediaType as MediaType) || 'movie',
+      title: row.title,
+      provider: (row.provider as ProviderName) || 'NETFLIX',
+      year: row.releaseYear ?? 2021,
+      runtimeMinutes: row.runtimeMinutes ?? 110,
+      ageRating: row.ageRating || '15',
+      resolution: (row.resolution as MovieDTO['resolution']) || '8K',
+      genres: row.genres ?? [],
+      tags: row.tags ?? [],
+      moods: (row.moods as MoodTag[]) ?? [],
+      synopsis: row.synopsis || '',
+      backdropUrl: row.backdropUrl || '/backdrops/interstellar.jpg',
+      trailerYoutubeId: row.trailerYoutubeId ?? null,
+      seasonsCount: row.seasonsCount ?? 1,
+      episodes: row.episodes ?? [],
       source: movielensId ? 'movielens' : 'local',
     };
 
