@@ -55,7 +55,7 @@ export const HeroPreview: React.FC<HeroPreviewProps> = ({
   const displayedStars = hoverRating ?? movie.userRating ?? 0;
 
   return (
-    <section className="relative w-full min-h-[340px] lg:min-h-[395px] flex items-end pb-7 pt-7 pl-20 pr-8 lg:pl-24 lg:pr-12 overflow-hidden">
+    <section className="relative w-full min-h-[460px] md:min-h-[540px] lg:min-h-[600px] xl:min-h-[640px] flex items-end pb-10 pt-10 pl-20 pr-8 lg:pl-24 lg:pr-12 overflow-hidden">
       {/* Right-Weighted Full-Bleed Cinematic Backdrop */}
       <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden bg-[#0F1429]">
         <AnimatePresence mode="wait">
@@ -67,24 +67,24 @@ export const HeroPreview: React.FC<HeroPreviewProps> = ({
               e.currentTarget.src = '/backdrops/interstellar.jpg';
             }}
             initial={{ opacity: 0, scale: 1.03 }}
-            animate={{ opacity: 0.9, scale: 1 }}
+            animate={{ opacity: 0.96, scale: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.4, ease: 'easeOut' }}
-            className="absolute right-0 top-0 h-full w-full md:w-[74%] object-cover object-center"
+            className="absolute right-0 top-0 h-full w-full md:w-[88%] lg:w-[90%] object-cover object-[50%_20%]"
           />
         </AnimatePresence>
         <div
           className="absolute inset-0"
           style={{
             background:
-              'linear-gradient(90deg, #0F1429 0%, #0F1429 28%, rgba(15, 20, 41, 0.88) 46%, rgba(15, 20, 41, 0.25) 75%, rgba(15, 20, 41, 0.08) 100%)',
+              'linear-gradient(90deg, #0F1429 0%, rgba(15, 20, 41, 0.92) 22%, rgba(15, 20, 41, 0.55) 42%, rgba(15, 20, 41, 0.12) 70%, rgba(15, 20, 41, 0.0) 100%)',
           }}
         />
         <div
           className="absolute inset-0"
           style={{
             background:
-              'linear-gradient(0deg, #101831 0%, rgba(16, 24, 49, 0.72) 22%, rgba(15, 20, 41, 0.0) 58%)',
+              'linear-gradient(0deg, #101831 0%, rgba(16, 24, 49, 0.65) 18%, rgba(15, 20, 41, 0.0) 48%)',
           }}
         />
       </div>
