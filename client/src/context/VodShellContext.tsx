@@ -81,8 +81,6 @@ function deriveCategoryFromPath(pathname: string): NavCategory {
     return 'shows';
   }
   if (pathname.startsWith('/search')) return 'search';
-  if (pathname.startsWith('/live')) return 'live';
-  if (pathname.startsWith('/audio')) return 'audio';
   if (pathname.startsWith('/settings')) return 'settings';
   return 'home';
 }
@@ -175,12 +173,6 @@ export const VodShellProvider: React.FC<{ children: React.ReactNode }> = ({
           break;
         case 'my-list':
           navigate({ to: '/my-list' });
-          break;
-        case 'live':
-          navigate({ to: '/live' });
-          break;
-        case 'audio':
-          navigate({ to: '/audio' });
           break;
         case 'settings':
           navigate({ to: '/settings' });

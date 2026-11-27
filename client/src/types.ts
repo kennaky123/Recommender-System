@@ -20,8 +20,6 @@ export type NavCategory =
   | 'films'
   | 'shows'
   | 'my-list'
-  | 'live'
-  | 'audio'
   | 'settings';
 export type CatalogSort = 'popular' | 'newest' | 'title';
 

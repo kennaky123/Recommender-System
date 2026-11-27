@@ -4,7 +4,7 @@
 
 ## Tech Stack
 
-- **Frontend:** Vite + React + TypeScript + **TanStack Router** (Multi-Page: `/`, `/discover`, `/films`, `/shows`, `/movie/$movieId`, `/series/$movieId`, `/my-list`, `/search`, `/live`, `/audio`, `/settings`, `/login`, `/register`) + **TanStack Query** + **Axios** + **Redux Toolkit** (auth & preferences) + **Zustand** (cabin UI state) + **React Hook Form + Zod** + **Tailwind CSS v4** + **shadcn/ui** (Radix UI + CVA) + **Lucide React** + **Motion (Framer Motion)**
+- **Frontend:** Vite + React + TypeScript + **TanStack Router** (Multi-Page: `/`, `/discover`, `/films`, `/shows`, `/movie/$movieId`, `/series/$movieId`, `/my-list`, `/search`, `/settings`, `/login`, `/register`) + **TanStack Query** + **Axios** + **Redux Toolkit** (auth & preferences) + **Zustand** (cabin UI state) + **React Hook Form + Zod** + **Tailwind CSS v4** + **shadcn/ui** (Radix UI + CVA) + **Lucide React** + **Motion (Framer Motion)**
 - **Backend:** Node.js + Express + TypeScript (`tsx`) + **Drizzle ORM** + **Zod** (full request/query/params & env validation) + **JWT (`jsonwebtoken`) + `bcrypt` (`bcryptjs`)** Auth + **Live API Artwork Resolver** (IMDb Suggestion / TVMaze / iTunes / TMDB)
 - **Demo Account:** `claude@spacex.vod` / `SpaceX@2026` (hoặc đăng ký tài khoản mới tại `/register`)
 - **Database:** PostgreSQL 16 (**Drizzle ORM** + `drizzle-kit` + `pg` + automatic `InMemoryMediaRepository` nếu PostgreSQL chưa khởi chạy)

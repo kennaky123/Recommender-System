@@ -6,8 +6,6 @@ import {
   Film,
   Tv,
   Bookmark,
-  Radio,
-  Music,
   Settings,
   LogIn,
 } from 'lucide-react';
@@ -36,8 +34,6 @@ const MAIN_ITEMS: Array<{
   { id: 'films', label: 'FILMS', Icon: Film },
   { id: 'shows', label: 'SHOWS', Icon: Tv },
   { id: 'my-list', label: 'MY LIST', Icon: Bookmark },
-  { id: 'live', label: 'LIVE', Icon: Radio },
-  { id: 'audio', label: 'AUDIO', Icon: Music },
 ];
 
 export const LeftSidebar: React.FC<LeftSidebarProps> = ({

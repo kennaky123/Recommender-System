@@ -12,7 +12,6 @@ import { VidLinkPlayerModal } from './components/VidLinkPlayerModal';
 import { AuthProvider } from './context/AuthContext';
 import { useVodShell, VodShellProvider } from './context/VodShellContext';
 import { CatalogPage } from './pages/CatalogPage';
-import { ChannelPage } from './pages/ChannelPage';
 import { DiscoverPage } from './pages/DiscoverPage';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
@@ -209,18 +208,6 @@ const searchRoute = createRoute({
   component: SearchPage,
 });
 
-const liveRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/live',
-  component: () => <ChannelPage channel="live" />,
-});
-
-const audioRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/audio',
-  component: () => <ChannelPage channel="audio" />,
-});
-
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/settings',
@@ -248,8 +235,6 @@ const routeTree = rootRoute.addChildren([
   movieDetailRoute,
   seriesRoute,
   searchRoute,
-  liveRoute,
-  audioRoute,
   settingsRoute,
   loginRoute,
   registerRoute,
