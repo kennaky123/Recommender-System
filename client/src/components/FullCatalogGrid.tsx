@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { CaretLeft, CaretRight, Database, Globe } from '@phosphor-icons/react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { fetchFullCatalog } from '../api';
-import { CatalogSort, MoodTag, RecommendedMovie } from '../types';
+import { useFullCatalogQuery } from '@/hooks/useVodQueries';
+import { CatalogSort, MoodTag, RecommendedMovie } from '@/types';
 import { ProviderLogo } from './ProviderLogo';
 
 export interface CatalogFilterState {
@@ -66,11 +66,19 @@ export const FullCatalogGrid: React.FC<FullCatalogGridProps> = ({
   const source = controlledSource ?? localSource;
   const page = controlledPage ?? localPage;
 
-  const [items, setItems] = useState<RecommendedMovie[]>([]);
-  const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [activeSource, setActiveSource] = useState('postgres');
-  const [loading, setLoading] = useState(true);
+  const { data, isPending, isFetching } = useFullCatalogQuery({
+    category,
+    genre,
+    mood: activeMood,
+    sort,
+    page,
+    source,
+  });
+
+  const items = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = data?.totalPages ?? 1;
+  const activeSource = data?.source ?? 'postgres';
 
   const updateFilters = (patch: Partial<CatalogFilterState>) => {
     const next: CatalogFilterState = {
@@ -89,33 +97,6 @@ export const FullCatalogGrid: React.FC<FullCatalogGridProps> = ({
     }
   };
 
-  useEffect(() => {
-    let alive = true;
-    setLoading(true);
-    fetchFullCatalog({
-      category,
-      genre,
-      mood: activeMood,
-      sort,
-      page,
-      limit: 24,
-      source,
-    })
-      .then((res) => {
-        if (!alive) return;
-        setItems(res.items);
-        setTotal(res.total);
-        setTotalPages(res.totalPages);
-        setActiveSource(res.source);
-      })
-      .finally(() => {
-        if (alive) setLoading(false);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [category, genre, activeMood, sort, page, source]);
-
   return (
     <section className="relative z-10 pl-20 lg:pl-24 pr-8 pb-12">
       {/* Header & Controls */}
@@ -133,6 +114,7 @@ export const FullCatalogGrid: React.FC<FullCatalogGridProps> = ({
             {total.toLocaleString()} TITLES AVAILABLE • PAGE {page} / {totalPages} •
             SOURCE:{' '}
             <span className="text-[#F0EA75]">{activeSource.toUpperCase()}</span>
+            {isFetching && !isPending ? ' • SYNCING...' : ''}
           </p>
         </div>
 
@@ -198,7 +180,7 @@ export const FullCatalogGrid: React.FC<FullCatalogGridProps> = ({
       </div>
 
       {/* Grid */}
-      {loading ? (
+      {isPending && !data ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 12 }).map((_, idx) => (
             <Skeleton key={idx} className="aspect-video" />

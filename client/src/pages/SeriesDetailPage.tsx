@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
-import { fetchMovieById } from '../api';
-import { HeroPreview } from '../components/HeroPreview';
-import { SeriesEpisodesPanel } from '../components/SeriesEpisodesPanel';
-import { useVodShell } from '../context/VodShellContext';
-import { Episode, RecommendedMovie } from '../types';
+import { HeroPreview } from '@/components/HeroPreview';
+import { SeriesEpisodesPanel } from '@/components/SeriesEpisodesPanel';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useVodShell } from '@/context/VodShellContext';
+import { useMovieDetailQuery } from '@/hooks/useVodQueries';
+import { Episode } from '@/types';
 
 export const SeriesDetailPage: React.FC = () => {
   const navigate = useNavigate();
@@ -23,31 +24,21 @@ export const SeriesDetailPage: React.FC = () => {
   } = useVodShell();
 
   const numericId = Number(movieId);
-  const [seriesMovie, setSeriesMovie] = useState<RecommendedMovie | null>(() => {
-    if (focusedMovie && focusedMovie.id === numericId) return focusedMovie;
-    const fromFeed =
-      feed?.newForYou.find((m) => m.id === numericId) ??
-      feed?.popularSuggestions.find((m) => m.id === numericId) ??
-      feed?.continueWatching.find((m) => m.id === numericId) ??
-      feed?.myList.find((m) => m.id === numericId);
-    return fromFeed ?? null;
-  });
+  const cachedFromFeed =
+    (focusedMovie?.id === numericId ? focusedMovie : undefined) ??
+    feed?.newForYou.find((m) => m.id === numericId) ??
+    feed?.popularSuggestions.find((m) => m.id === numericId) ??
+    feed?.continueWatching.find((m) => m.id === numericId) ??
+    feed?.myList.find((m) => m.id === numericId);
 
+  const { data: fetchedSeries } = useMovieDetailQuery(
+    numericId,
+    !cachedFromFeed
+  );
+
+  const seriesMovie = cachedFromFeed ?? fetchedSeries ?? null;
   const activeSeason = search.season ?? seriesMovie?.lastSeason ?? 1;
   const [focusedEpisode, setFocusedEpisode] = useState<Episode | null>(null);
-
-  useEffect(() => {
-    if (seriesMovie && seriesMovie.id === numericId) return;
-    let alive = true;
-    fetchMovieById(numericId)
-      .then((m) => {
-        if (alive) setSeriesMovie(m);
-      })
-      .catch(() => null);
-    return () => {
-      alive = false;
-    };
-  }, [numericId, seriesMovie]);
 
   useEffect(() => {
     if (!seriesMovie) return;
@@ -61,7 +52,7 @@ export const SeriesDetailPage: React.FC = () => {
   if (!seriesMovie) {
     return (
       <div className="pl-24 pr-10 pt-16">
-        <div className="h-64 w-full max-w-2xl bg-[#131A35] rounded-[6px] animate-pulse" />
+        <Skeleton className="h-64 w-full max-w-2xl" />
       </div>
     );
   }

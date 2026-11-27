@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ensureMovieInDb, searchCatalog } from '../api';
+import { useSearchCatalogInfiniteQuery } from '@/hooks/useVodQueries';
+import { ensureMovieInDb } from '../api';
 import { RecommendedMovie } from '../types';
 import { ProviderLogo } from './ProviderLogo';
 
@@ -46,54 +47,46 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
   onClose,
 }) => {
   const [query, setQuery] = useState(initialQuery);
+  const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
   const [genre, setGenre] = useState(initialGenre);
   const [mediaType, setMediaType] = useState<'all' | 'movie' | 'tv'>(
     initialMediaType
   );
-  const [page, setPage] = useState(1);
-  const [results, setResults] = useState<RecommendedMovie[]>([]);
-  const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [sourcesUsed, setSourcesUsed] = useState<string[]>([]);
-  const [tmdbEnabled, setTmdbEnabled] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     setQuery(initialQuery);
+    setDebouncedQuery(initialQuery);
     setGenre(initialGenre);
     setMediaType(initialMediaType);
   }, [initialQuery, initialGenre, initialMediaType]);
 
   useEffect(() => {
-    setPage(1);
-  }, [query, genre, mediaType]);
-
-  useEffect(() => {
-    let active = true;
-    setLoading(true);
     const timer = window.setTimeout(() => {
+      setDebouncedQuery(query);
       onFiltersChange?.({ q: query, genre, mediaType });
-      searchCatalog(query, 'all', genre, mediaType, page, 24)
-        .then((res) => {
-          if (!active) return;
-          setResults((prev) =>
-            page === 1 ? res.movies : [...prev, ...res.movies]
-          );
-          setTotal(res.total);
-          setTotalPages(res.totalPages);
-          setSourcesUsed(res.sourcesUsed);
-          setTmdbEnabled(res.tmdbEnabled);
-        })
-        .finally(() => {
-          if (active) setLoading(false);
-        });
     }, 180);
+    return () => window.clearTimeout(timer);
+  }, [query, genre, mediaType, onFiltersChange]);
 
-    return () => {
-      active = false;
-      window.clearTimeout(timer);
-    };
-  }, [query, genre, mediaType, page, onFiltersChange]);
+  const {
+    data,
+    isPending,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useSearchCatalogInfiniteQuery({
+    q: debouncedQuery,
+    genre,
+    mediaType,
+  });
+
+  const results = data?.pages.flatMap((p) => p.movies) ?? [];
+  const latestPage = data?.pages[data.pages.length - 1];
+  const total = latestPage?.total ?? 0;
+  const totalPages = latestPage?.totalPages ?? 1;
+  const currentPage = latestPage?.page ?? 1;
+  const sourcesUsed = latestPage?.sourcesUsed ?? [];
+  const tmdbEnabled = latestPage?.tmdbEnabled ?? false;
 
   const handlePickMovie = async (movie: RecommendedMovie) => {
     const ensured = movie.id < 0 ? await ensureMovieInDb(movie) : movie;
@@ -189,7 +182,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
       </div>
 
       {/* Results Grid */}
-      {loading && page === 1 ? (
+      {isPending ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 8 }).map((_, i) => (
             <Skeleton key={i} className="aspect-video" />
@@ -253,18 +246,18 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
             ))}
           </div>
 
-          {page < totalPages && (
+          {hasNextPage && (
             <div className="mt-7 flex justify-center">
               <Button
                 type="button"
                 variant="backlit"
-                disabled={loading}
-                onClick={() => setPage((p) => p + 1)}
+                disabled={isFetchingNextPage}
+                onClick={() => fetchNextPage()}
                 className="px-8"
               >
-                {loading
+                {isFetchingNextPage
                   ? 'LOADING...'
-                  : `LOAD MORE RESULTS (PAGE ${page + 1} / ${totalPages})`}
+                  : `LOAD MORE RESULTS (PAGE ${currentPage + 1} / ${totalPages})`}
               </Button>
             </div>
           )}

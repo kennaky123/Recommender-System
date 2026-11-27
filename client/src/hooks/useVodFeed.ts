@@ -1,17 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ensureMovieInDb,
-  fetchRecommendations,
   saveWatchProgress,
   submitRating,
   toggleMyList,
-} from '../api';
+} from '@/api';
+import { useRecommendationsQuery } from '@/hooks/useVodQueries';
+import { vodQueryKeys } from '@/lib/queryClient';
 import {
   MoodTag,
   NavCategory,
   RecommendationFeed,
   RecommendedMovie,
-} from '../types';
+} from '@/types';
 
 export interface VodRowConfig {
   title: string;
@@ -21,13 +23,16 @@ export interface VodRowConfig {
 }
 
 /**
- * Single Responsibility hook: manages recommendation feed fetching, selection,
- * ratings, My List mutations, watch-progress sync, and transient notifications.
+ * Single Responsibility hook powered by TanStack Query + Axios mutations.
  */
 export function useVodFeed(activeMood: MoodTag, activeCategory: NavCategory) {
-  const [feed, setFeed] = useState<RecommendationFeed | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const {
+    data: feed = null,
+    isLoading,
+    error: queryError,
+  } = useRecommendationsQuery(activeMood, activeCategory);
+
   const [focusedMovie, setFocusedMovie] = useState<RecommendedMovie | null>(null);
   const [actionsVisible, setActionsVisible] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
@@ -37,33 +42,112 @@ export function useVodFeed(activeMood: MoodTag, activeCategory: NavCategory) {
     window.setTimeout(() => setToast(null), 3200);
   }, []);
 
-  const loadFeed = useCallback(async (mood: MoodTag, category: NavCategory) => {
-    try {
-      setLoading(true);
-      const data = await fetchRecommendations(mood, category);
-      setFeed(data);
-      setFocusedMovie((prev) => {
-        if (prev) {
-          const updated =
-            data.newForYou.find((m) => m.id === prev.id) ??
-            data.popularSuggestions.find((m) => m.id === prev.id) ??
-            data.continueWatching.find((m) => m.id === prev.id);
-          if (updated) return updated;
-          if (prev.id > 0) return prev;
-        }
-        return data.heroFeatured;
-      });
-      setError(null);
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    loadFeed(activeMood, activeCategory);
-  }, [activeMood, activeCategory, loadFeed]);
+    if (!feed) return;
+    setFocusedMovie((prev) => {
+      if (prev) {
+        const updated =
+          feed.newForYou.find((m) => m.id === prev.id) ??
+          feed.popularSuggestions.find((m) => m.id === prev.id) ??
+          feed.continueWatching.find((m) => m.id === prev.id);
+        if (updated) return updated;
+        if (prev.id > 0) return prev;
+      }
+      return feed.heroFeatured;
+    });
+  }, [feed]);
+
+  const syncFeedCache = useCallback(
+    (nextFeed: RecommendationFeed) => {
+      queryClient.setQueryData(
+        vodQueryKeys.recommendations(activeMood, activeCategory),
+        nextFeed
+      );
+      queryClient.invalidateQueries({
+        queryKey: vodQueryKeys.recommendationsRoot(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: vodQueryKeys.userProfile(),
+      });
+    },
+    [activeCategory, activeMood, queryClient]
+  );
+
+  const watchlistMutation = useMutation({
+    mutationFn: async (movieId: number) => {
+      let targetId = movieId;
+      if (targetId < 0 && focusedMovie) {
+        const ensured = await ensureMovieInDb(focusedMovie);
+        setFocusedMovie(ensured);
+        targetId = ensured.id;
+      }
+      const res = await toggleMyList(targetId);
+      return { targetId, ...res };
+    },
+    onSuccess: ({ targetId, inMyList, feed: nextFeed }) => {
+      syncFeedCache(nextFeed);
+      setFocusedMovie((prev) =>
+        prev && prev.id === targetId ? { ...prev, inMyList } : prev
+      );
+      showToast(inMyList ? 'ADDED TO MY LIST' : 'REMOVED FROM MY LIST');
+    },
+    onError: () => {
+      showToast('COULD NOT UPDATE MY LIST');
+    },
+  });
+
+  const ratingMutation = useMutation({
+    mutationFn: async ({
+      movieId,
+      rating,
+    }: {
+      movieId: number;
+      rating: number;
+    }) => {
+      let targetId = movieId;
+      if (targetId < 0 && focusedMovie) {
+        const ensured = await ensureMovieInDb(focusedMovie);
+        setFocusedMovie(ensured);
+        targetId = ensured.id;
+      }
+      const res = await submitRating(targetId, rating);
+      return { targetId, rating, feed: res.feed };
+    },
+    onSuccess: ({ targetId, rating, feed: nextFeed }) => {
+      syncFeedCache(nextFeed);
+      setFocusedMovie((prev) =>
+        prev && prev.id === targetId ? { ...prev, userRating: rating } : prev
+      );
+      showToast(`RATED ${rating}★ — RECOMMENDATIONS RE-RANKED`);
+    },
+    onError: () => {
+      showToast('FAILED TO SAVE RATING');
+    },
+  });
+
+  const progressMutation = useMutation({
+    mutationFn: async (vars: {
+      movieId: number;
+      progressSeconds: number;
+      durationSeconds: number;
+      season: number;
+      episode: number;
+    }) => {
+      if (vars.movieId < 0) return null;
+      return saveWatchProgress(
+        vars.movieId,
+        vars.progressSeconds,
+        vars.durationSeconds,
+        vars.season,
+        vars.episode
+      );
+    },
+    onSuccess: (res) => {
+      if (res?.feed) {
+        syncFeedCache(res.feed);
+      }
+    },
+  });
 
   // Dashboard (HOME) stays capped at 8 items per horizontal row
   const activeRows = useMemo<VodRowConfig[]>(() => {
@@ -109,46 +193,16 @@ export function useVodFeed(activeMood: MoodTag, activeCategory: NavCategory) {
 
   const handleToggleMyList = useCallback(
     async (movieId: number) => {
-      try {
-        let targetId = movieId;
-        if (targetId < 0 && focusedMovie) {
-          const ensured = await ensureMovieInDb(focusedMovie);
-          setFocusedMovie(ensured);
-          targetId = ensured.id;
-        }
-        const res = await toggleMyList(targetId);
-        setFeed(res.feed);
-        setFocusedMovie((prev) =>
-          prev && prev.id === targetId ? { ...prev, inMyList: res.inMyList } : prev
-        );
-        showToast(res.inMyList ? 'ADDED TO MY LIST' : 'REMOVED FROM MY LIST');
-      } catch {
-        showToast('COULD NOT UPDATE MY LIST');
-      }
+      await watchlistMutation.mutateAsync(movieId).catch(() => null);
     },
-    [focusedMovie, showToast]
+    [watchlistMutation]
   );
 
   const handleRate = useCallback(
     async (movieId: number, rating: number) => {
-      try {
-        let targetId = movieId;
-        if (targetId < 0 && focusedMovie) {
-          const ensured = await ensureMovieInDb(focusedMovie);
-          setFocusedMovie(ensured);
-          targetId = ensured.id;
-        }
-        const res = await submitRating(targetId, rating);
-        setFeed(res.feed);
-        setFocusedMovie((prev) =>
-          prev && prev.id === targetId ? { ...prev, userRating: rating } : prev
-        );
-        showToast(`RATED ${rating}★ — RECOMMENDATIONS RE-RANKED`);
-      } catch {
-        showToast('FAILED TO SAVE RATING');
-      }
+      await ratingMutation.mutateAsync({ movieId, rating }).catch(() => null);
     },
-    [focusedMovie, showToast]
+    [ratingMutation]
   );
 
   const handleProgressSync = useCallback(
@@ -159,27 +213,23 @@ export function useVodFeed(activeMood: MoodTag, activeCategory: NavCategory) {
       season: number,
       episode: number
     ) => {
-      try {
-        if (movieId < 0) return;
-        const res = await saveWatchProgress(
+      await progressMutation
+        .mutateAsync({
           movieId,
           progressSeconds,
           durationSeconds,
           season,
-          episode
-        );
-        setFeed(res.feed);
-      } catch {
-        // silent background sync
-      }
+          episode,
+        })
+        .catch(() => null);
     },
-    []
+    [progressMutation]
   );
 
   return {
     feed,
-    loading,
-    error,
+    loading: isLoading && !feed,
+    error: queryError instanceof Error ? queryError.message : null,
     focusedMovie,
     setFocusedMovie,
     actionsVisible,

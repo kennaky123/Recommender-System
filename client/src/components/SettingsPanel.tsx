@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Database, Cpu, Star, X, Globe } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { fetchUserProfile } from '../api';
-import { RecommendationFeed, UserProfileResponse } from '../types';
+import { useUserProfileQuery } from '@/hooks/useVodQueries';
+import { RecommendationFeed } from '@/types';
 
 interface SettingsPanelProps {
   feed: RecommendationFeed;
@@ -14,11 +14,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   feed,
   onClose,
 }) => {
-  const [profileData, setProfileData] = useState<UserProfileResponse | null>(null);
-
-  useEffect(() => {
-    fetchUserProfile().then(setProfileData).catch(() => null);
-  }, [feed.engineStats.userRatingsCount]);
+  const { data: profileData } = useUserProfileQuery();
 
   return (
     <div className="relative z-10 pl-20 lg:pl-24 pr-8 py-8 min-h-[calc(100dvh-66px)]">
