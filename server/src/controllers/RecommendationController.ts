@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { MoodTag, NavCategory } from '../domain/types';
 import { IRecommendationService } from '../services/interfaces/ServiceInterfaces';
+import { recommendationsQuerySchema } from '../validation/schemas';
 import { BaseController } from './BaseController';
 
 /**
@@ -22,10 +22,10 @@ export class RecommendationController extends BaseController {
   }
 
   private async getRecommendations(req: Request, res: Response): Promise<void> {
-    const userId = this.parsePositiveInt(req.query.userId, 1);
-    const mood = (String(req.query.mood ?? 'all') as MoodTag) || 'all';
-    const category =
-      (String(req.query.category ?? 'home') as NavCategory) || 'home';
+    const { userId, mood, category } = this.validate(
+      recommendationsQuerySchema,
+      req.query
+    );
     const feed = await this.recommender.generateFeed(userId, mood, category);
     res.json(feed);
   }

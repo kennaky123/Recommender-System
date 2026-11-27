@@ -1,6 +1,13 @@
 import { Request, Response } from 'express';
-import { CatalogSort, MoodTag, MovieDTO } from '../domain/types';
 import { ICatalogService } from '../services/interfaces/ServiceInterfaces';
+import {
+  catalogQuerySchema,
+  ensureMovieBodySchema,
+  listMoviesQuerySchema,
+  movieIdParamSchema,
+  searchQuerySchema,
+  similarMoviesQuerySchema,
+} from '../validation/schemas';
 import { BaseController } from './BaseController';
 
 /**
@@ -30,8 +37,7 @@ export class MovieController extends BaseController {
   }
 
   private async listMovies(req: Request, res: Response): Promise<void> {
-    const page = this.parsePositiveInt(req.query.page, 1);
-    const limit = this.parsePositiveInt(req.query.limit, 24);
+    const { page, limit } = this.validate(listMoviesQuerySchema, req.query);
     const result = await this.catalogService.getCatalog({
       userId: 1,
       category: 'all',
@@ -47,44 +53,19 @@ export class MovieController extends BaseController {
   }
 
   private async getCatalog(req: Request, res: Response): Promise<void> {
-    const userId = this.parsePositiveInt(req.query.userId, 1);
-    const category = String(req.query.category ?? 'all');
-    const mediaType =
-      (String(req.query.mediaType ?? 'all') as 'all' | 'movie' | 'tv') || 'all';
-    const genre = req.query.genre ? String(req.query.genre) : 'ALL';
-    const mood = (String(req.query.mood ?? 'all') as MoodTag) || 'all';
-    const sort = (String(req.query.sort ?? 'popular') as CatalogSort) || 'popular';
-    const page = this.parsePositiveInt(req.query.page, 1);
-    const limit = this.parsePositiveInt(req.query.limit, 24);
-    const source = String(req.query.source ?? 'auto');
-
-    const result = await this.catalogService.getCatalog({
-      userId,
-      category,
-      mediaType,
-      genre,
-      mood,
-      sort,
-      page,
-      limit,
-      source,
-    });
+    const query = this.validate(catalogQuerySchema, req.query);
+    const result = await this.catalogService.getCatalog(query);
     res.json(result);
   }
 
   private async searchMovies(req: Request, res: Response): Promise<void> {
-    const userId = this.parsePositiveInt(req.query.userId, 1);
-    const query = String(req.query.q ?? '');
-    const mood = (String(req.query.mood ?? 'all') as MoodTag) || 'all';
-    const genre = req.query.genre ? String(req.query.genre) : 'ALL';
-    const mediaType =
-      (String(req.query.mediaType ?? 'all') as 'all' | 'movie' | 'tv') || 'all';
-    const page = this.parsePositiveInt(req.query.page, 1);
-    const limit = this.parsePositiveInt(req.query.limit, 24);
-
+    const { userId, q, mood, genre, mediaType, page, limit } = this.validate(
+      searchQuerySchema,
+      req.query
+    );
     const result = await this.catalogService.search({
       userId,
-      query,
+      query: q,
       mood,
       genre,
       mediaType,
@@ -95,21 +76,13 @@ export class MovieController extends BaseController {
   }
 
   private async ensureMovie(req: Request, res: Response): Promise<void> {
-    const payload = req.body as Partial<MovieDTO>;
-    if (!payload.tmdbId || !payload.title) {
-      res.status(400).json({ error: 'tmdbId and title are required' });
-      return;
-    }
+    const payload = this.validate(ensureMovieBodySchema, req.body);
     const movie = await this.catalogService.ensureExternalMedia(payload);
     res.json({ movie });
   }
 
   private async getById(req: Request, res: Response): Promise<void> {
-    const id = Number(req.params.id);
-    if (!Number.isFinite(id)) {
-      res.status(400).json({ error: 'Invalid movie id' });
-      return;
-    }
+    const { id } = this.validate(movieIdParamSchema, req.params);
     const movie = await this.catalogService.getMediaDetails(id);
     if (!movie) {
       res.status(404).json({ error: 'Movie not found' });
@@ -119,13 +92,11 @@ export class MovieController extends BaseController {
   }
 
   private async getSimilar(req: Request, res: Response): Promise<void> {
-    const id = Number(req.params.id);
-    if (!Number.isFinite(id)) {
-      res.status(400).json({ error: 'Invalid movie id' });
-      return;
-    }
-    const userId = this.parsePositiveInt(req.query.userId, 1);
-    const limit = this.parsePositiveInt(req.query.limit, 6);
+    const { id } = this.validate(movieIdParamSchema, req.params);
+    const { userId, limit } = this.validate(
+      similarMoviesQuerySchema,
+      req.query
+    );
     const items = await this.catalogService.getSimilar(id, userId, limit);
     res.json({ items });
   }

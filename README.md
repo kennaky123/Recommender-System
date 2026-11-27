@@ -5,7 +5,7 @@
 ## Tech Stack
 
 - **Frontend:** Vite + React + TypeScript + **TanStack Router** + **TanStack Query** + **Axios** + **Redux Toolkit** (auth & preferences) + **Zustand** (cabin UI state) + **React Hook Form + Zod** + **Tailwind CSS v4** + **shadcn/ui** (Radix UI + CVA) + **Lucide React** + **Motion (Framer Motion)**
-- **Backend:** Node.js + Express + TypeScript (`tsx`) + **Drizzle ORM** + **JWT Auth** (`scrypt` + `jsonwebtoken` + `zod`)
+- **Backend:** Node.js + Express + TypeScript (`tsx`) + **Drizzle ORM** + **Zod** (full request/query/params & env validation) + **JWT Auth** (`scrypt` + `jsonwebtoken`)
 - **Demo Account:** `claude@spacex.vod` / `SpaceX@2026` (hoặc đăng ký tài khoản mới tại `/register`)
 - **Database:** PostgreSQL 16 (**Drizzle ORM** + `drizzle-kit` + `pg` + automatic `InMemoryMediaRepository` nếu PostgreSQL chưa khởi chạy)
 - **Streaming:** VidLink Pro (`https://vidlink.pro/movie/{tmdbId}` & `/tv/{tmdbId}/{season}/{episode}`) + `postMessage` Continue Watching listener

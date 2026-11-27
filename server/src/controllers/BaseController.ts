@@ -1,7 +1,11 @@
 import { NextFunction, Request, Response, Router } from 'express';
+import { z } from 'zod';
+import { RequestValidationError } from '../validation/RequestValidationError';
+import { formatZodIssues } from '../validation/schemas';
 
 /**
- * Abstract base controller providing encapsulated Express router setup and async error handling.
+ * Abstract base controller providing encapsulated Express router setup,
+ * centralized Zod validation, and unified HTTP error handling.
  */
 export abstract class BaseController {
   protected readonly router: Router;
@@ -22,6 +26,13 @@ export abstract class BaseController {
   ) {
     return (req: Request, res: Response, next: NextFunction): void => {
       Promise.resolve(fn(req, res, next)).catch((err: unknown) => {
+        if (err instanceof RequestValidationError) {
+          res.status(err.statusCode).json({
+            error: err.message,
+            issues: err.issues,
+          });
+          return;
+        }
         const message =
           err instanceof Error ? err.message : 'Internal server error';
         res.status(500).json({ error: message });
@@ -29,11 +40,18 @@ export abstract class BaseController {
     };
   }
 
-  protected parsePositiveInt(
-    value: unknown,
-    fallback: number
-  ): number {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
+  protected validate<Output, Def extends z.ZodTypeDef = z.ZodTypeDef, Input = Output>(
+    schema: z.ZodType<Output, Def, Input>,
+    input: unknown
+  ): Output {
+    const parsed = schema.safeParse(input);
+    if (!parsed.success) {
+      const issues = formatZodIssues(parsed.error);
+      throw new RequestValidationError(
+        issues[0]?.message ?? 'Invalid request payload',
+        issues
+      );
+    }
+    return parsed.data;
   }
 }

@@ -1,9 +1,10 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import { envSchema } from '../validation/schemas';
 import { IAppConfig } from './IConfig';
 
 /**
- * Singleton configuration loader implementing segregated config interfaces.
+ * Singleton configuration loader validating runtime env with Zod.
  */
 export class AppConfig implements IAppConfig {
   private static instance: AppConfig | null = null;
@@ -19,16 +20,13 @@ export class AppConfig implements IAppConfig {
     const envPath = path.resolve(__dirname, '..', '..', '.env');
     dotenv.config({ path: envPath });
 
-    this.port = Number(process.env.PORT) || 5050;
-    this.databaseUrl =
-      process.env.DATABASE_URL ||
-      'postgresql://spacex:spacex_secret@localhost:5433/spacex_vod';
-    this.tmdbApiKey = (process.env.TMDB_API_KEY || '').trim();
-    this.tmdbAccessToken = (process.env.TMDB_ACCESS_TOKEN || '').trim();
-    this.jwtSecret =
-      (process.env.JWT_SECRET || '').trim() ||
-      'spacex_vod_dev_jwt_secret_change_me';
-    this.jwtExpiresIn = (process.env.JWT_EXPIRES_IN || '').trim() || '7d';
+    const env = envSchema.parse(process.env);
+    this.port = env.PORT;
+    this.databaseUrl = env.DATABASE_URL;
+    this.tmdbApiKey = env.TMDB_API_KEY;
+    this.tmdbAccessToken = env.TMDB_ACCESS_TOKEN;
+    this.jwtSecret = env.JWT_SECRET;
+    this.jwtExpiresIn = env.JWT_EXPIRES_IN;
   }
 
   public static getInstance(): AppConfig {
