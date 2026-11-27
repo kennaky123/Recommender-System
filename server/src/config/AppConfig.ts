@@ -1,10 +1,11 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import { IAppConfig } from './IConfig';
 
 /**
- * Singleton configuration loader for the Space-X VOD backend.
+ * Singleton configuration loader implementing segregated config interfaces.
  */
-export class AppConfig {
+export class AppConfig implements IAppConfig {
   private static instance: AppConfig | null = null;
 
   public readonly port: number;
@@ -13,8 +14,8 @@ export class AppConfig {
   public readonly tmdbAccessToken: string;
 
   private constructor() {
-    const envFromDistOrSrc = path.resolve(__dirname, '..', '..', '.env');
-    dotenv.config({ path: envFromDistOrSrc });
+    const envPath = path.resolve(__dirname, '..', '..', '.env');
+    dotenv.config({ path: envPath });
 
     this.port = Number(process.env.PORT) || 5050;
     this.databaseUrl =

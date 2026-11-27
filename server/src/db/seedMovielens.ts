@@ -4,6 +4,7 @@ import AdmZip from 'adm-zip';
 import { parse } from 'csv-parse/sync';
 import { MoodTag, ProviderName } from '../domain/types';
 import { DatabaseConnection } from '../repositories/DatabaseConnection';
+import { DatabaseSeeder } from '../repositories/DatabaseSeeder';
 
 const MOVIELENS_ZIP_URL =
   'https://files.grouplens.org/datasets/movielens/ml-latest-small.zip';
@@ -141,8 +142,9 @@ async function seedMovieLens() {
   ) as Array<{ movieId: string; title: string; genres: string }>;
 
   const db = DatabaseConnection.getInstance();
-  await db.applySchema();
-  await db.seedDefaults();
+  const seeder = new DatabaseSeeder(db);
+  await seeder.applySchema();
+  await seeder.seedDefaults();
 
   const existingRes = await db.pool.query(
     'SELECT id, tmdb_id, media_type FROM movies'

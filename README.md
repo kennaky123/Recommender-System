@@ -42,18 +42,17 @@ npm run dev
 - Frontend: `http://localhost:5173`
 - Backend API: `http://localhost:5050` (PostgreSQL Docker chạy ở cổng `5433` để tránh xung đột cổng `5432` mặc định)
 
-## Kiến trúc Backend OOP & Recommendation Engine
+## Kiến trúc Backend OOP + SOLID & Recommendation Engine
 
-Backend (`server/src/`) được thiết kế theo kiến trúc **OOP phân tầng** kết hợp các Design Pattern:
+Backend (`server/src/`) và Frontend (`client/src/`) được thiết kế theo kiến trúc **OOP phân tầng** tuân thủ nghiêm ngặt **5 nguyên lý SOLID**:
 
-* **`config/` & `repositories/DatabaseConnection.ts` (Singleton):** `AppConfig` nạp cấu hình `.env`; `DatabaseConnection` quản lý PostgreSQL `pg.Pool`, schema & seed dữ liệu.
-* **`domain/` (Abstraction, Inheritance, Polymorphism & Factory):**
-  * `MediaEntity` *(abstract)* → `MovieEntity` & `SeriesEntity` (đa hình `getStreamUrl()`, `getMediaCategoryLabel()`, vector hóa đặc trưng).
-  * `UserEntity` đóng gói hồ sơ, ratings, watchlist và watch history.
-  * `MediaFactory` khởi tạo entity từ DTO, bản ghi PostgreSQL hoặc dữ liệu TMDB.
-* **`repositories/` (Repository Pattern & DIP):** Interface `IMediaRepository` với 2 implementation `PostgresMediaRepository` (PostgreSQL chính) và `InMemoryMediaRepository` (fallback tự động).
-* **`services/recommendation/` (Strategy Pattern):** `HybridRecommendationService` kết hợp các chiến lược chấm điểm độc lập `ContentBasedStrategy` (45%), `CollaborativeStrategy` (45%) và `PopularityPriorStrategy` (10%).
-* **`controllers/` & `app/ServerApplication.ts` (Template/BaseController & Constructor DI):** `HealthController`, `MovieController`, `RecommendationController`, `UserController` kế thừa `BaseController` và được `ServerApplication` tiêm phụ thuộc khi khởi động.
+| Nguyên lý | Áp dụng thực tế trong codebase |
+|---|---|
+| **S — Single Responsibility** | Tách `DatabaseConnection` (quản lý pool) khỏi `DatabaseSeeder` (DDL & seed); tách `HybridRecommendationService` thành `RecommendationIndexStore`, `MatchReasonExplainer`, `RecommendationFeedAssembler`; Frontend tách `useVodFeed` & `useDpadNavigation` khỏi `App.tsx`. |
+| **O — Open/Closed** | `HybridRecommendationService` không hardcode tên strategy hay mood boost; mọi chiến lược (`ContentBasedStrategy`, `CollaborativeStrategy`, `PopularityPriorStrategy`, `MoodBoostStrategy`) cài đặt `IScoringStrategy` trả về cả `score` và `reason`. |
+| **L — Liskov Substitution** | `MovieEntity` / `SeriesEntity` (kế thừa `MediaEntity`) và `PostgresMediaRepository` / `InMemoryMediaRepository` thay thế nhau hoàn toàn; bất biến dữ liệu chuẩn hóa qua Value Objects `RatingValue` & `WatchProgressValue`. |
+| **I — Interface Segregation** | Tách config thành `IServerConfig`, `IDatabaseConfig`, `ITmdbConfig`; tách repository thành 6 interface nhỏ (`IStorageStatusProvider`, `IMediaCatalogRepository`, `IRatingRepository`, `IWatchlistRepository`, `IWatchHistoryRepository`, `IUserProfileRepository`). |
+| **D — Dependency Inversion** | Controllers & Services chỉ phụ thuộc vào interface (`ICatalogService`, `IRecommendationService`, `IUserActivityService`, `IExternalMediaProvider`, `IRecommendationCacheInvalidator`). Chỉ `ServerApplication` (Composition Root) khởi tạo concrete class. |
 
 ### Luồng Recommendation & VidLink Feedback Loop
 

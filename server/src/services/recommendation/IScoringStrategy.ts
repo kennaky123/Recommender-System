@@ -1,4 +1,5 @@
 import { MediaEntity } from '../../domain/MediaEntity';
+import { MoodTag } from '../../domain/types';
 import { SeedPreferenceItem, UserEntity } from '../../domain/UserEntity';
 
 export interface MediaRatingStats {
@@ -9,6 +10,8 @@ export interface MediaRatingStats {
 
 export interface ScoringContext {
   user: UserEntity;
+  mood: MoodTag;
+  anchorMedia?: MediaEntity;
   userPreferenceVector: Map<string, number>;
   likedSeedItems: SeedPreferenceItem[];
   featureVectors: Map<number, Map<string, number>>;
@@ -18,10 +21,13 @@ export interface ScoringContext {
 
 export interface StrategyScoreResult {
   score: number;
+  reason?: string;
+  boost?: boolean;
 }
 
 /**
- * Strategy Pattern interface for modular recommendation scoring components.
+ * Open/Closed Principle (OCP):
+ * Strategies compute both normalized scores and optional human-readable explanations.
  */
 export interface IScoringStrategy {
   readonly name: string;

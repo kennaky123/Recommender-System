@@ -17,10 +17,11 @@ import {
   UserProfile,
   WatchProgressRecord,
 } from '../domain/types';
+import { RatingValue, WatchProgressValue } from '../domain/ValueObjects';
 import { IMediaRepository } from './IMediaRepository';
 
 /**
- * In-memory fallback repository implementing IMediaRepository when PostgreSQL is unavailable.
+ * In-memory fallback repository behaviorally substitutable for PostgresMediaRepository (LSP).
  */
 export class InMemoryMediaRepository implements IMediaRepository {
   private readonly mediaList: MediaEntity[];
@@ -189,15 +190,15 @@ export class InMemoryMediaRepository implements IMediaRepository {
     movieId: number,
     rating: number
   ): Promise<void> {
-    const clamped = Math.max(0.5, Math.min(5.0, Math.round(rating * 2) / 2));
+    const normalized = RatingValue.create(rating);
     const now = new Date().toISOString();
     const idx = this.ratings.findIndex(
       (r) => r.userId === userId && r.movieId === movieId
     );
     if (idx >= 0) {
-      this.ratings[idx] = { userId, movieId, rating: clamped, ratedAt: now };
+      this.ratings[idx] = { userId, movieId, rating: normalized.value, ratedAt: now };
     } else {
-      this.ratings.push({ userId, movieId, rating: clamped, ratedAt: now });
+      this.ratings.push({ userId, movieId, rating: normalized.value, ratedAt: now });
     }
   }
 
@@ -231,18 +232,13 @@ export class InMemoryMediaRepository implements IMediaRepository {
     season = 1,
     episode = 1
   ): Promise<WatchProgressRecord> {
-    const safeDuration = Math.max(1, Math.round(durationSeconds));
-    const safeProgress = Math.max(
-      0,
-      Math.min(safeDuration, Math.round(progressSeconds))
-    );
-    const pct = Number(Math.min(100, (safeProgress / safeDuration) * 100).toFixed(2));
+    const progress = WatchProgressValue.create(progressSeconds, durationSeconds);
     const record: WatchProgressRecord = {
       userId,
       movieId,
-      progressSeconds: safeProgress,
-      durationSeconds: safeDuration,
-      progressPercent: pct,
+      progressSeconds: progress.progressSeconds,
+      durationSeconds: progress.durationSeconds,
+      progressPercent: progress.progressPercent,
       lastSeason: season,
       lastEpisode: episode,
       updatedAt: new Date().toISOString(),

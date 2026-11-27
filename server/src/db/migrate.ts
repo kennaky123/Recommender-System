@@ -1,10 +1,12 @@
 import { DatabaseConnection } from '../repositories/DatabaseConnection';
+import { DatabaseSeeder } from '../repositories/DatabaseSeeder';
 
 async function migrate() {
   console.log('[Migrate] Applying PostgreSQL schema...');
   const db = DatabaseConnection.getInstance();
-  await db.applySchema();
-  await db.seedDefaults();
+  const seeder = new DatabaseSeeder(db);
+  await seeder.applySchema();
+  await seeder.seedDefaults();
   const { rows } = await db.pool.query(
     'SELECT COUNT(*)::int AS movies FROM movies'
   );

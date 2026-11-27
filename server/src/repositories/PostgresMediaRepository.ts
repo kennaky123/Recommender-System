@@ -12,6 +12,7 @@ import {
   UserProfile,
   WatchProgressRecord,
 } from '../domain/types';
+import { RatingValue, WatchProgressValue } from '../domain/ValueObjects';
 import { DatabaseConnection } from './DatabaseConnection';
 import { IMediaRepository } from './IMediaRepository';
 
@@ -310,13 +311,13 @@ export class PostgresMediaRepository implements IMediaRepository {
     movieId: number,
     rating: number
   ): Promise<void> {
-    const clamped = Math.max(0.5, Math.min(5.0, Math.round(rating * 2) / 2));
+    const normalized = RatingValue.create(rating);
     await this.pool.query(
       `INSERT INTO ratings (user_id, movie_id, rating, rated_at)
        VALUES ($1, $2, $3, NOW())
        ON CONFLICT (user_id, movie_id)
        DO UPDATE SET rating = EXCLUDED.rating, rated_at = NOW()`,
-      [userId, movieId, clamped]
+      [userId, movieId, normalized.value]
     );
   }
 
@@ -374,12 +375,7 @@ export class PostgresMediaRepository implements IMediaRepository {
     season = 1,
     episode = 1
   ): Promise<WatchProgressRecord> {
-    const safeDuration = Math.max(1, Math.round(durationSeconds));
-    const safeProgress = Math.max(
-      0,
-      Math.min(safeDuration, Math.round(progressSeconds))
-    );
-    const pct = Number(Math.min(100, (safeProgress / safeDuration) * 100).toFixed(2));
+    const progress = WatchProgressValue.create(progressSeconds, durationSeconds);
     const { rows } = await this.pool.query(
       `INSERT INTO watch_history (
         user_id, movie_id, progress_seconds, duration_seconds, progress_percent,
@@ -394,7 +390,15 @@ export class PostgresMediaRepository implements IMediaRepository {
         last_episode = EXCLUDED.last_episode,
         updated_at = NOW()
       RETURNING *`,
-      [userId, movieId, safeProgress, safeDuration, pct, season, episode]
+      [
+        userId,
+        movieId,
+        progress.progressSeconds,
+        progress.durationSeconds,
+        progress.progressPercent,
+        season,
+        episode,
+      ]
     );
     const r = rows[0];
     return {

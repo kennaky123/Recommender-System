@@ -1,15 +1,15 @@
 import { Request, Response } from 'express';
 import { CatalogSort, MoodTag, MovieDTO } from '../domain/types';
-import { CatalogService } from '../services/CatalogService';
+import { ICatalogService } from '../services/interfaces/ServiceInterfaces';
 import { BaseController } from './BaseController';
 
 /**
- * Controller exposing catalog pagination, multi-source search, movie details, and similarity endpoints.
+ * Controller exposing catalog pagination, search, movie details, and similarity via ICatalogService (DIP).
  */
 export class MovieController extends BaseController {
-  private readonly catalogService: CatalogService;
+  private readonly catalogService: ICatalogService;
 
-  public constructor(catalogService: CatalogService) {
+  public constructor(catalogService: ICatalogService) {
     super();
     this.catalogService = catalogService;
   }

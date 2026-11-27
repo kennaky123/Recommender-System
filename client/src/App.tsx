@@ -1,11 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  ensureMovieInDb,
-  fetchRecommendations,
-  saveWatchProgress,
-  submitRating,
-  toggleMyList,
-} from './api';
+import { useCallback, useState } from 'react';
+import { ensureMovieInDb } from './api';
 import { ContentRow } from './components/ContentRow';
 import { FullCatalogGrid } from './components/FullCatalogGrid';
 import { HeroPreview } from './components/HeroPreview';
@@ -17,20 +11,17 @@ import { SeriesEpisodesPanel } from './components/SeriesEpisodesPanel';
 import { SettingsPanel } from './components/SettingsPanel';
 import { TelemetryHeader } from './components/TelemetryHeader';
 import { VidLinkPlayerModal } from './components/VidLinkPlayerModal';
+import { useDpadNavigation } from './hooks/useDpadNavigation';
+import { useVodFeed } from './hooks/useVodFeed';
 import {
   Episode,
   MoodTag,
   NavCategory,
   PlaybackDevice,
-  RecommendationFeed,
   RecommendedMovie,
 } from './types';
 
 export function App() {
-  const [feed, setFeed] = useState<RecommendationFeed | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   const [activeCategory, setActiveCategory] = useState<NavCategory>('home');
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [activeMood, setActiveMood] = useState<MoodTag>('all');
@@ -38,8 +29,6 @@ export function App() {
   const [selectedDevice, setSelectedDevice] =
     useState<PlaybackDevice>('CABIN DISPLAY 8K');
 
-  const [focusedMovie, setFocusedMovie] = useState<RecommendedMovie | null>(null);
-  const [actionsVisible, setActionsVisible] = useState(true);
   const [seriesDetailMovie, setSeriesDetailMovie] =
     useState<RecommendedMovie | null>(null);
   const [activeSeason, setActiveSeason] = useState(1);
@@ -52,90 +41,21 @@ export function App() {
     episode: number;
   } | null>(null);
 
-  const [toast, setToast] = useState<string | null>(null);
-
-  const showToast = useCallback((msg: string) => {
-    setToast(msg);
-    window.setTimeout(() => setToast(null), 3200);
-  }, []);
-
-  const loadFeed = useCallback(
-    async (mood: MoodTag, category: NavCategory) => {
-      try {
-        setLoading(true);
-        const data = await fetchRecommendations(mood, category);
-        setFeed(data);
-        setFocusedMovie((prev) => {
-          if (prev) {
-            const updated =
-              data.newForYou.find((m) => m.id === prev.id) ??
-              data.popularSuggestions.find((m) => m.id === prev.id) ??
-              data.continueWatching.find((m) => m.id === prev.id);
-            if (updated) return updated;
-            if (prev.id > 0) return prev;
-          }
-          return data.heroFeatured;
-        });
-        setError(null);
-      } catch (err) {
-        setError((err as Error).message);
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
-
-  useEffect(() => {
-    loadFeed(activeMood, activeCategory);
-  }, [activeMood, activeCategory, loadFeed]);
-
-  // Dashboard (HOME) stays strictly limited to 8 items per row
-  const activeRows = useMemo(() => {
-    if (!feed) return [];
-    const rows: Array<{
-      title: string;
-      items: RecommendedMovie[];
-      showProgress?: boolean;
-      allowViewAll?: boolean;
-    }> = [
-      {
-        title: 'NEW FOR YOU',
-        items: feed.newForYou.slice(0, 8),
-        allowViewAll: true,
-      },
-      {
-        title: 'POPULAR SUGGESTIONS FOR YOU',
-        items: feed.popularSuggestions.slice(0, 8),
-      },
-    ];
-    if (feed.continueWatching.length > 0) {
-      rows.push({
-        title: 'CONTINUE WATCHING',
-        items: feed.continueWatching.slice(0, 8),
-        showProgress: true,
-      });
-    }
-    if (feed.becauseYouWatched && feed.becauseYouWatched.items.length > 0) {
-      rows.push({
-        title: `BECAUSE YOU LIKED ${feed.becauseYouWatched.anchorTitle}`,
-        items: feed.becauseYouWatched.items.slice(0, 8),
-      });
-    }
-    if (feed.myList.length > 0) {
-      rows.push({
-        title: 'MY LIST',
-        items: feed.myList.slice(0, 8),
-      });
-    }
-    return rows;
-  }, [feed]);
-
-  const handleSelectMovie = useCallback(async (movie: RecommendedMovie) => {
-    const ensured = movie.id < 0 ? await ensureMovieInDb(movie) : movie;
-    setFocusedMovie(ensured);
-    setActionsVisible(true);
-  }, []);
+  const {
+    feed,
+    loading,
+    error,
+    focusedMovie,
+    setFocusedMovie,
+    actionsVisible,
+    setActionsVisible,
+    activeRows,
+    toast,
+    handleSelectMovie,
+    handleToggleMyList,
+    handleRate,
+    handleProgressSync,
+  } = useVodFeed(activeMood, activeCategory);
 
   const handleOpenEpisodes = useCallback((movie: RecommendedMovie) => {
     setSeriesDetailMovie(movie);
@@ -148,168 +68,43 @@ export function App() {
     setFocusedEpisode(firstEp);
   }, []);
 
-  const handleToggleMyList = useCallback(
-    async (movieId: number) => {
-      try {
-        let targetId = movieId;
-        if (targetId < 0 && focusedMovie) {
-          const ensured = await ensureMovieInDb(focusedMovie);
-          setFocusedMovie(ensured);
-          targetId = ensured.id;
-        }
-        const res = await toggleMyList(targetId);
-        setFeed(res.feed);
-        setFocusedMovie((prev) =>
-          prev && prev.id === targetId ? { ...prev, inMyList: res.inMyList } : prev
-        );
-        showToast(res.inMyList ? 'ADDED TO MY LIST' : 'REMOVED FROM MY LIST');
-      } catch {
-        showToast('COULD NOT UPDATE MY LIST');
-      }
-    },
-    [focusedMovie, showToast]
-  );
-
-  const handleRate = useCallback(
-    async (movieId: number, rating: number) => {
-      try {
-        let targetId = movieId;
-        if (targetId < 0 && focusedMovie) {
-          const ensured = await ensureMovieInDb(focusedMovie);
-          setFocusedMovie(ensured);
-          targetId = ensured.id;
-        }
-        const res = await submitRating(targetId, rating);
-        setFeed(res.feed);
-        setFocusedMovie((prev) =>
-          prev && prev.id === targetId ? { ...prev, userRating: rating } : prev
-        );
-        showToast(`RATED ${rating}★ — RECOMMENDATIONS RE-RANKED`);
-      } catch {
-        showToast('FAILED TO SAVE RATING');
-      }
-    },
-    [focusedMovie, showToast]
-  );
-
-  const handleProgressSync = useCallback(
+  const launchPlayer = useCallback(
     async (
-      movieId: number,
-      progressSeconds: number,
-      durationSeconds: number,
-      season: number,
-      episode: number
+      movie: RecommendedMovie,
+      mode: 'watch' | 'trailer',
+      seasonOverride?: number,
+      episodeOverride?: number
     ) => {
-      try {
-        if (movieId < 0) return;
-        const res = await saveWatchProgress(
-          movieId,
-          progressSeconds,
-          durationSeconds,
-          season,
-          episode
-        );
-        setFeed(res.feed);
-      } catch {
-        // silent background sync
-      }
+      const ensured = movie.id < 0 ? await ensureMovieInDb(movie) : movie;
+      setPlayerState({
+        movie: ensured,
+        mode,
+        season:
+          seasonOverride ?? focusedEpisode?.season ?? ensured.lastSeason ?? 1,
+        episode:
+          episodeOverride ?? focusedEpisode?.episode ?? ensured.lastEpisode ?? 1,
+      });
     },
-    []
+    [focusedEpisode]
   );
 
-  const handleDpadNavigate = useCallback(
-    (dir: 'up' | 'down' | 'left' | 'right' | 'ok' | 'back') => {
-      if (dir === 'back') {
-        if (playerState) {
-          setPlayerState(null);
-        } else if (seriesDetailMovie) {
-          setSeriesDetailMovie(null);
-          setFocusedEpisode(null);
-        } else if (sidebarExpanded) {
-          setSidebarExpanded(false);
-        } else if (activeCategory !== 'home') {
-          setActiveCategory('home');
-        }
-        return;
-      }
-
-      if (dir === 'ok' && focusedMovie) {
-        setPlayerState({
-          movie: focusedMovie,
-          mode: 'watch',
-          season: focusedMovie.lastSeason ?? 1,
-          episode: focusedMovie.lastEpisode ?? 1,
-        });
-        return;
-      }
-
-      if (activeRows.length === 0 || !focusedMovie) return;
-      let rIdx = activeRows.findIndex((r) =>
-        r.items.some((i) => i.id === focusedMovie.id)
-      );
-      if (rIdx < 0) rIdx = 0;
-      let cIdx = activeRows[rIdx].items.findIndex((i) => i.id === focusedMovie.id);
-      if (cIdx < 0) cIdx = 0;
-
-      if (dir === 'left') {
-        if (cIdx === 0) {
-          setSidebarExpanded(true);
-        } else {
-          setSidebarExpanded(false);
-          setFocusedMovie(activeRows[rIdx].items[cIdx - 1]);
-        }
-      } else if (dir === 'right') {
-        setSidebarExpanded(false);
-        const nextC = Math.min(activeRows[rIdx].items.length - 1, cIdx + 1);
-        setFocusedMovie(activeRows[rIdx].items[nextC]);
-      } else if (dir === 'down') {
-        const nextR = Math.min(activeRows.length - 1, rIdx + 1);
-        const targetCol = Math.min(activeRows[nextR].items.length - 1, cIdx);
-        setFocusedMovie(activeRows[nextR].items[targetCol]);
-      } else if (dir === 'up') {
-        const prevR = Math.max(0, rIdx - 1);
-        const targetCol = Math.min(activeRows[prevR].items.length - 1, cIdx);
-        setFocusedMovie(activeRows[prevR].items[targetCol]);
-      }
+  const { handleDpadNavigate } = useDpadNavigation({
+    activeCategory,
+    activeRows,
+    focusedMovie,
+    sidebarExpanded,
+    isPlayerOpen: Boolean(playerState),
+    isSeriesOpen: Boolean(seriesDetailMovie),
+    onFocusMovie: setFocusedMovie,
+    onExpandSidebar: setSidebarExpanded,
+    onClosePlayer: () => setPlayerState(null),
+    onCloseSeries: () => {
+      setSeriesDetailMovie(null);
+      setFocusedEpisode(null);
     },
-    [
-      activeCategory,
-      activeRows,
-      focusedMovie,
-      playerState,
-      seriesDetailMovie,
-      sidebarExpanded,
-    ]
-  );
-
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (
-        document.activeElement?.tagName === 'INPUT' ||
-        document.activeElement?.tagName === 'TEXTAREA' ||
-        document.activeElement?.tagName === 'SELECT'
-      ) {
-        return;
-      }
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        handleDpadNavigate('left');
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        handleDpadNavigate('right');
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        handleDpadNavigate('up');
-      } else if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        handleDpadNavigate('down');
-      } else if (e.key === 'Escape') {
-        handleDpadNavigate('back');
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [handleDpadNavigate]);
+    onResetToHome: () => setActiveCategory('home'),
+    onLaunchWatch: (m) => launchPlayer(m, 'watch'),
+  });
 
   const currentHero = seriesDetailMovie ?? focusedMovie ?? feed?.heroFeatured;
   const isFullCatalogView = activeCategory === 'films' || activeCategory === 'shows';
@@ -392,24 +187,8 @@ export function App() {
                     ? `S${focusedEpisode.season} EP${focusedEpisode.episode}:`
                     : undefined
                 }
-                onTrailer={async (m) => {
-                  const ensured = m.id < 0 ? await ensureMovieInDb(m) : m;
-                  setPlayerState({
-                    movie: ensured,
-                    mode: 'trailer',
-                    season: 1,
-                    episode: 1,
-                  });
-                }}
-                onWatch={async (m) => {
-                  const ensured = m.id < 0 ? await ensureMovieInDb(m) : m;
-                  setPlayerState({
-                    movie: ensured,
-                    mode: 'watch',
-                    season: focusedEpisode?.season ?? ensured.lastSeason ?? 1,
-                    episode: focusedEpisode?.episode ?? ensured.lastEpisode ?? 1,
-                  });
-                }}
+                onTrailer={(m) => launchPlayer(m, 'trailer', 1, 1)}
+                onWatch={(m) => launchPlayer(m, 'watch')}
                 onToggleMyList={handleToggleMyList}
                 onRate={handleRate}
                 onOpenEpisodes={
@@ -434,12 +213,7 @@ export function App() {
                 }}
                 onFocusEpisode={setFocusedEpisode}
                 onPlayEpisode={(ep) =>
-                  setPlayerState({
-                    movie: seriesDetailMovie,
-                    mode: 'watch',
-                    season: ep.season,
-                    episode: ep.episode,
-                  })
+                  launchPlayer(seriesDetailMovie, 'watch', ep.season, ep.episode)
                 }
                 onBack={() => {
                   setSeriesDetailMovie(null);

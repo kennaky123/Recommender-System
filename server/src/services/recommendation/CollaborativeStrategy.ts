@@ -45,6 +45,13 @@ export class CollaborativeStrategy implements IScoringStrategy {
         ? Math.max(0, Math.min(1, 0.45 + 0.55 * (weightedSum / simSum)))
         : 0.45;
 
-    return { score };
+    const reason =
+      context.anchorMedia &&
+      context.anchorMedia.id !== candidate.id &&
+      score > 0.58
+        ? `SIMILAR VIEWERS TO ${context.anchorMedia.title} LOVED THIS`
+        : undefined;
+
+    return { score, reason };
   }
 }

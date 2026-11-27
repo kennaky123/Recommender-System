@@ -1,15 +1,15 @@
 import { Request, Response } from 'express';
 import { MoodTag, NavCategory } from '../domain/types';
-import { HybridRecommendationService } from '../services/recommendation/HybridRecommendationService';
+import { IRecommendationService } from '../services/interfaces/ServiceInterfaces';
 import { BaseController } from './BaseController';
 
 /**
- * Controller exposing personalized hybrid recommendation feeds.
+ * Controller exposing personalized hybrid recommendation feeds via IRecommendationService (DIP).
  */
 export class RecommendationController extends BaseController {
-  private readonly recommender: HybridRecommendationService;
+  private readonly recommender: IRecommendationService;
 
-  public constructor(recommender: HybridRecommendationService) {
+  public constructor(recommender: IRecommendationService) {
     super();
     this.recommender = recommender;
   }

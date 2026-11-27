@@ -29,6 +29,21 @@ export class ContentBasedStrategy implements IScoringStrategy {
       features
     );
     const normalized = Math.max(0, Math.min(1, (rawSim + 0.15) / 1.0));
-    return { score: normalized };
+
+    let reason: string | undefined;
+    if (
+      context.anchorMedia &&
+      context.anchorMedia.id !== candidate.id &&
+      normalized > 0.52
+    ) {
+      const sharedGenre =
+        candidate.genres.find((g) => context.anchorMedia!.genres.includes(g)) ??
+        candidate.genres[0];
+      reason = `BECAUSE YOU LIKED ${context.anchorMedia.title} (${
+        sharedGenre || 'SCI-FI'
+      })`;
+    }
+
+    return { score: normalized, reason };
   }
 }

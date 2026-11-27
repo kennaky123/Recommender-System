@@ -1,53 +1,38 @@
 import { MediaEntity } from '../domain/MediaEntity';
 import {
-  CatalogSort,
-  MoodTag,
   MovieDTO,
   PaginatedCatalogResult,
   RecommendedMovieDTO,
 } from '../domain/types';
-import { IMediaRepository } from '../repositories/IMediaRepository';
-import { HybridRecommendationService } from './recommendation/HybridRecommendationService';
-import { TmdbApiClient } from './TmdbApiClient';
+import {
+  IMediaCatalogRepository,
+  IStorageStatusProvider,
+} from '../repositories/interfaces/RepositoryInterfaces';
+import {
+  CatalogQueryInput,
+  ICatalogService,
+  IExternalMediaProvider,
+  IRecommendationCacheInvalidator,
+  IRecommendationService,
+  SearchQueryInput,
+} from './interfaces/ServiceInterfaces';
 
-export interface SearchQueryInput {
-  userId: number;
-  query: string;
-  mood: MoodTag;
-  genre: string;
-  mediaType: 'all' | 'movie' | 'tv';
-  page: number;
-  limit: number;
-}
-
-export interface CatalogQueryInput {
-  userId: number;
-  category: string;
-  mediaType: 'all' | 'movie' | 'tv';
-  genre: string;
-  mood: MoodTag;
-  sort: CatalogSort;
-  page: number;
-  limit: number;
-  source: string;
+export interface CatalogServiceDeps {
+  catalogRepo: IMediaCatalogRepository;
+  storageStatus: IStorageStatusProvider;
+  externalProvider: IExternalMediaProvider;
+  recommender: IRecommendationService;
+  cacheInvalidator: IRecommendationCacheInvalidator;
 }
 
 /**
- * Application service coordinating catalog browsing, multi-source search, and TMDB enrichment.
+ * Application service coordinating catalog browsing, multi-source search, and enrichment (ISP + DIP).
  */
-export class CatalogService {
-  private readonly repository: IMediaRepository;
-  private readonly tmdbClient: TmdbApiClient;
-  private readonly recommender: HybridRecommendationService;
+export class CatalogService implements ICatalogService {
+  private readonly deps: CatalogServiceDeps;
 
-  public constructor(
-    repository: IMediaRepository,
-    tmdbClient: TmdbApiClient,
-    recommender: HybridRecommendationService
-  ) {
-    this.repository = repository;
-    this.tmdbClient = tmdbClient;
-    this.recommender = recommender;
+  public constructor(deps: CatalogServiceDeps) {
+    this.deps = deps;
   }
 
   private toRecommendedShell(entity: MediaEntity): RecommendedMovieDTO {
@@ -70,10 +55,10 @@ export class CatalogService {
     movieCount: number;
     ratingCount: number;
   }> {
-    const counts = await this.repository.getCatalogCounts();
+    const counts = await this.deps.storageStatus.getCatalogCounts();
     return {
-      storageMode: this.repository.getStorageMode(),
-      tmdbEnabled: this.tmdbClient.isConfigured(),
+      storageMode: this.deps.storageStatus.getStorageMode(),
+      tmdbEnabled: this.deps.externalProvider.isConfigured(),
       movieCount: counts.movieCount,
       ratingCount: counts.ratingCount,
     };
@@ -87,10 +72,10 @@ export class CatalogService {
         ? 'tv'
         : input.mediaType;
 
-    const tmdbEnabled = this.tmdbClient.isConfigured();
+    const tmdbEnabled = this.deps.externalProvider.isConfigured();
 
     if (input.source === 'tmdb' && tmdbEnabled) {
-      const tmdbPage = await this.tmdbClient.fetchPopular(
+      const tmdbPage = await this.deps.externalProvider.fetchPopular(
         resolvedMediaType,
         input.page
       );
@@ -104,7 +89,7 @@ export class CatalogService {
       };
     }
 
-    const result = await this.repository.searchPaginated({
+    const result = await this.deps.catalogRepo.searchPaginated({
       userId: input.userId,
       mood: input.mood,
       genre: input.genre,
@@ -118,7 +103,9 @@ export class CatalogService {
       ...result,
       tmdbEnabled,
       source:
-        this.repository.getStorageMode() === 'postgres' ? 'postgres' : 'memory',
+        this.deps.storageStatus.getStorageMode() === 'postgres'
+          ? 'postgres'
+          : 'memory',
     };
   }
 
@@ -130,8 +117,8 @@ export class CatalogService {
     tmdbEnabled: boolean;
     sourcesUsed: string[];
   }> {
-    const tmdbEnabled = this.tmdbClient.isConfigured();
-    const dbResult = await this.repository.searchPaginated({
+    const tmdbEnabled = this.deps.externalProvider.isConfigured();
+    const dbResult = await this.deps.catalogRepo.searchPaginated({
       userId: input.userId,
       query: input.query,
       mood: input.mood,
@@ -146,11 +133,11 @@ export class CatalogService {
     let total = dbResult.total;
     let totalPages = dbResult.totalPages;
     const sourcesUsed = [
-      this.repository.getStorageMode() === 'postgres' ? 'PGSQL' : 'LOCAL',
+      this.deps.storageStatus.getStorageMode() === 'postgres' ? 'PGSQL' : 'LOCAL',
     ];
 
     if (input.query.trim() && tmdbEnabled) {
-      const tmdbRes = await this.tmdbClient.searchMulti(
+      const tmdbRes = await this.deps.externalProvider.searchMulti(
         input.query,
         input.page,
         input.mediaType
@@ -186,7 +173,7 @@ export class CatalogService {
       throw new Error('tmdbId and title are required');
     }
 
-    const inserted = await this.repository.upsertExternalMedia({
+    const inserted = await this.deps.catalogRepo.upsertExternalMedia({
       movielensId: payload.movielensId ?? null,
       tmdbId: Number(payload.tmdbId),
       imdbId: payload.imdbId ?? null,
@@ -208,12 +195,12 @@ export class CatalogService {
       source: 'tmdb',
     });
 
-    const enriched = await this.tmdbClient.enrichMedia(inserted);
+    const enriched = await this.deps.externalProvider.enrichMedia(inserted);
     if (
       enriched.backdropUrl !== inserted.backdropUrl ||
       enriched.trailerYoutubeId !== inserted.trailerYoutubeId
     ) {
-      await this.repository.updateMediaEnrichment(inserted.id, {
+      await this.deps.catalogRepo.updateMediaEnrichment(inserted.id, {
         backdropUrl: enriched.backdropUrl,
         synopsis: enriched.synopsis,
         runtimeMinutes: enriched.runtimeMinutes,
@@ -221,20 +208,20 @@ export class CatalogService {
         seasonsCount: enriched.toDTO().seasonsCount,
       });
     }
-    this.recommender.invalidateCache();
+    this.deps.cacheInvalidator.invalidateCache();
     return this.toRecommendedShell(enriched);
   }
 
   public async getMediaDetails(id: number): Promise<MovieDTO | null> {
-    const entity = await this.repository.getMediaById(id);
+    const entity = await this.deps.catalogRepo.getMediaById(id);
     if (!entity) return null;
 
-    const enriched = await this.tmdbClient.enrichMedia(entity);
+    const enriched = await this.deps.externalProvider.enrichMedia(entity);
     if (
       enriched.backdropUrl !== entity.backdropUrl ||
       enriched.trailerYoutubeId !== entity.trailerYoutubeId
     ) {
-      await this.repository.updateMediaEnrichment(entity.id, {
+      await this.deps.catalogRepo.updateMediaEnrichment(entity.id, {
         backdropUrl: enriched.backdropUrl,
         synopsis: enriched.synopsis,
         runtimeMinutes: enriched.runtimeMinutes,
@@ -250,6 +237,6 @@ export class CatalogService {
     userId = 1,
     limit = 6
   ): Promise<RecommendedMovieDTO[]> {
-    return this.recommender.getSimilarMedia(movieId, userId, limit);
+    return this.deps.recommender.getSimilarMedia(movieId, userId, limit);
   }
 }

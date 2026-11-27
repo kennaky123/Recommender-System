@@ -1,17 +1,18 @@
-import { AppConfig } from '../config/AppConfig';
+import { ITmdbConfig } from '../config/IConfig';
 import { MediaEntity } from '../domain/MediaEntity';
 import { MediaFactory, TmdbRawItem } from '../domain/MediaFactory';
 import { MovieDTO } from '../domain/types';
+import { IExternalMediaProvider } from './interfaces/ServiceInterfaces';
 
 /**
- * Encapsulated HTTP client for The Movie Database (TMDB) v3/v4 APIs.
+ * External media provider client for TMDB v3/v4 APIs (DIP + ISP).
  */
-export class TmdbApiClient {
+export class TmdbApiClient implements IExternalMediaProvider {
   private static readonly BASE_URL = 'https://api.themoviedb.org/3';
-  private readonly config: AppConfig;
+  private readonly config: ITmdbConfig;
   private readonly backdropCache = new Map<string, string>();
 
-  public constructor(config: AppConfig) {
+  public constructor(config: ITmdbConfig) {
     this.config = config;
   }
 

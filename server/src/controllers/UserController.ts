@@ -1,14 +1,14 @@
 import { Request, Response } from 'express';
-import { UserActivityService } from '../services/UserActivityService';
+import { IUserActivityService } from '../services/interfaces/ServiceInterfaces';
 import { BaseController } from './BaseController';
 
 /**
- * Controller handling user profiles, watchlist toggling, star ratings, and playback progress sync.
+ * Controller handling user profiles, watchlist, ratings, and playback progress via IUserActivityService (DIP).
  */
 export class UserController extends BaseController {
-  private readonly userService: UserActivityService;
+  private readonly userService: IUserActivityService;
 
-  public constructor(userService: UserActivityService) {
+  public constructor(userService: IUserActivityService) {
     super();
     this.userService = userService;
   }

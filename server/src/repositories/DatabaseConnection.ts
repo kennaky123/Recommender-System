@@ -1,23 +1,15 @@
-import fs from 'fs';
-import path from 'path';
 import { Pool } from 'pg';
 import { AppConfig } from '../config/AppConfig';
-import {
-  SEED_MOVIES,
-  SEED_RATINGS,
-  SEED_USERS,
-  SEED_WATCHLIST,
-  SEED_WATCH_HISTORY,
-} from '../db/seedData';
+import { IDatabaseConfig } from '../config/IConfig';
 
 /**
- * Singleton manager for PostgreSQL connection pooling, schema migration, and default seeding.
+ * Single Responsibility: manages ONLY PostgreSQL pg.Pool connection lifecycle.
  */
 export class DatabaseConnection {
   private static instance: DatabaseConnection | null = null;
   public readonly pool: Pool;
 
-  private constructor(config: AppConfig) {
+  private constructor(config: IDatabaseConfig) {
     this.pool = new Pool({
       connectionString: config.databaseUrl,
       connectionTimeoutMillis: 2500,
@@ -28,139 +20,17 @@ export class DatabaseConnection {
     });
   }
 
-  public static getInstance(): DatabaseConnection {
+  public static getInstance(
+    config: IDatabaseConfig = AppConfig.getInstance()
+  ): DatabaseConnection {
     if (!DatabaseConnection.instance) {
-      DatabaseConnection.instance = new DatabaseConnection(
-        AppConfig.getInstance()
-      );
+      DatabaseConnection.instance = new DatabaseConnection(config);
     }
     return DatabaseConnection.instance;
   }
 
-  public resolveSchemaPath(): string {
-    const candidates = [
-      path.resolve(__dirname, '..', 'db', 'schema.sql'),
-      path.resolve(__dirname, '..', '..', 'src', 'db', 'schema.sql'),
-    ];
-    for (const candidate of candidates) {
-      if (fs.existsSync(candidate)) return candidate;
-    }
-    return candidates[1];
-  }
-
   public async testConnection(): Promise<void> {
     await this.pool.query('SELECT 1');
-  }
-
-  public async applySchema(): Promise<void> {
-    const schemaSql = fs.readFileSync(this.resolveSchemaPath(), 'utf-8');
-    await this.pool.query(schemaSql);
-  }
-
-  public async seedDefaultsIfEmpty(): Promise<void> {
-    const { rows } = await this.pool.query('SELECT COUNT(*)::int AS cnt FROM movies');
-    if (Number(rows[0]?.cnt ?? 0) === 0) {
-      await this.seedDefaults();
-    }
-  }
-
-  public async seedDefaults(): Promise<void> {
-    const client = await this.pool.connect();
-    try {
-      await client.query('BEGIN');
-      for (const u of SEED_USERS) {
-        await client.query(
-          `INSERT INTO users (id, name, avatar_url)
-           VALUES ($1, $2, $3)
-           ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, avatar_url = EXCLUDED.avatar_url`,
-          [u.id, u.name, u.avatarUrl]
-        );
-      }
-
-      for (const m of SEED_MOVIES) {
-        await client.query(
-          `INSERT INTO movies (
-            id, movielens_id, tmdb_id, imdb_id, media_type, title, provider,
-            release_year, runtime_minutes, age_rating, resolution, genres, tags, moods,
-            synopsis, backdrop_url, trailer_youtube_id, seasons_count, episodes
-          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19::jsonb)
-          ON CONFLICT (id) DO NOTHING`,
-          [
-            m.id,
-            m.movielensId ?? null,
-            m.tmdbId,
-            m.imdbId ?? null,
-            m.mediaType,
-            m.title,
-            m.provider,
-            m.year,
-            m.runtimeMinutes,
-            m.ageRating,
-            m.resolution,
-            m.genres,
-            m.tags,
-            m.moods,
-            m.synopsis,
-            m.backdropUrl,
-            m.trailerYoutubeId ?? null,
-            m.seasonsCount ?? 1,
-            JSON.stringify(m.episodes ?? []),
-          ]
-        );
-      }
-
-      await client.query(
-        `SELECT setval(pg_get_serial_sequence('users', 'id'), COALESCE((SELECT MAX(id) FROM users), 1))`
-      );
-      await client.query(
-        `SELECT setval(pg_get_serial_sequence('movies', 'id'), COALESCE((SELECT MAX(id) FROM movies), 1))`
-      );
-
-      for (const r of SEED_RATINGS) {
-        await client.query(
-          `INSERT INTO ratings (user_id, movie_id, rating, rated_at)
-           VALUES ($1, $2, $3, $4)
-           ON CONFLICT (user_id, movie_id) DO NOTHING`,
-          [r.userId, r.movieId, r.rating, r.ratedAt]
-        );
-      }
-
-      for (const w of SEED_WATCHLIST) {
-        await client.query(
-          `INSERT INTO user_watchlist (user_id, movie_id)
-           VALUES ($1, $2)
-           ON CONFLICT (user_id, movie_id) DO NOTHING`,
-          [w.userId, w.movieId]
-        );
-      }
-
-      for (const h of SEED_WATCH_HISTORY) {
-        await client.query(
-          `INSERT INTO watch_history (
-            user_id, movie_id, progress_seconds, duration_seconds, progress_percent,
-            last_season, last_episode, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-          ON CONFLICT (user_id, movie_id) DO NOTHING`,
-          [
-            h.userId,
-            h.movieId,
-            h.progressSeconds,
-            h.durationSeconds,
-            h.progressPercent,
-            h.lastSeason,
-            h.lastEpisode,
-            h.updatedAt,
-          ]
-        );
-      }
-
-      await client.query('COMMIT');
-    } catch (err) {
-      await client.query('ROLLBACK');
-      throw err;
-    } finally {
-      client.release();
-    }
   }
 
   public async close(): Promise<void> {
