@@ -9,6 +9,7 @@ import {
   PublicUserDTO,
   RecommendationFeedDTO,
   RecommendedMovieDTO,
+  UserRole,
   WatchProgressRecord,
 } from '../../domain/types';
 
@@ -126,6 +127,7 @@ export interface AuthTokenPayload {
   userId: number;
   email: string;
   name: string;
+  role: UserRole;
 }
 
 export interface ITokenProvider {

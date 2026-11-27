@@ -1,4 +1,8 @@
-import { AuthResponseDTO, PublicUserDTO } from '../../domain/types';
+import {
+  AuthResponseDTO,
+  AuthUserRecord,
+  PublicUserDTO,
+} from '../../domain/types';
 import { IAuthUserRepository } from '../../repositories/interfaces/RepositoryInterfaces';
 import {
   IAuthService,
@@ -31,17 +35,16 @@ export class AuthService implements IAuthService {
     this.deps = deps;
   }
 
-  private toPublicUser(user: {
-    id: number;
-    name: string;
-    email: string;
-    avatarUrl: string;
-  }): PublicUserDTO {
+  private toPublicUser(user: AuthUserRecord): PublicUserDTO {
     return {
       id: user.id,
       name: user.name,
       email: user.email,
       avatarUrl: user.avatarUrl,
+      role: user.role,
+      onboardingCompleted: user.onboardingCompleted,
+      preferredGenres: [...user.preferredGenres],
+      preferredMoods: [...user.preferredMoods],
     };
   }
 
@@ -69,6 +72,7 @@ export class AuthService implements IAuthService {
       userId: user.id,
       email: user.email,
       name: user.name,
+      role: user.role,
     });
 
     return { token, user };
@@ -97,6 +101,7 @@ export class AuthService implements IAuthService {
       userId: user.id,
       email: user.email,
       name: user.name,
+      role: user.role,
     });
 
     return { token, user };

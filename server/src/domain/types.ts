@@ -13,8 +13,37 @@ export type MoodTag =
   | 'calm'
   | 'mind-bending'
   | 'epic';
+export type UserRole = 'user' | 'researcher' | 'admin';
 export type NavCategory = 'home' | 'films' | 'shows' | 'live' | 'audio';
 export type CatalogSort = 'popular' | 'newest' | 'title';
+
+const VALID_MOOD_TAGS = new Set<MoodTag>([
+  'all',
+  'dramatic',
+  'intense',
+  'fun',
+  'calm',
+  'mind-bending',
+  'epic',
+]);
+
+export function normalizeUserRole(value: unknown): UserRole {
+  if (value === 'user' || value === 'researcher' || value === 'admin') {
+    return value;
+  }
+  return 'user';
+}
+
+export function normalizeMoodTags(values: unknown): MoodTag[] {
+  if (!Array.isArray(values)) return [];
+  const result: MoodTag[] = [];
+  for (const item of values) {
+    if (typeof item === 'string' && VALID_MOOD_TAGS.has(item as MoodTag)) {
+      result.push(item as MoodTag);
+    }
+  }
+  return result;
+}
 
 export interface Episode {
   season: number;
@@ -53,6 +82,10 @@ export interface UserProfile {
   name: string;
   email?: string | null;
   avatarUrl: string;
+  role: UserRole;
+  onboardingCompleted: boolean;
+  preferredGenres: string[];
+  preferredMoods: MoodTag[];
 }
 
 export interface AuthUserRecord {
@@ -61,6 +94,10 @@ export interface AuthUserRecord {
   email: string;
   passwordHash: string;
   avatarUrl: string;
+  role: UserRole;
+  onboardingCompleted: boolean;
+  preferredGenres: string[];
+  preferredMoods: MoodTag[];
 }
 
 export interface PublicUserDTO {
@@ -68,6 +105,10 @@ export interface PublicUserDTO {
   name: string;
   email: string;
   avatarUrl: string;
+  role: UserRole;
+  onboardingCompleted: boolean;
+  preferredGenres: string[];
+  preferredMoods: MoodTag[];
 }
 
 export interface AuthResponseDTO {

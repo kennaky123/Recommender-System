@@ -32,11 +32,23 @@ function makeEpisodes(
 }
 
 export const SEED_USERS: UserProfile[] = [
-  { id: 1, name: 'CLAUDE PATTERSON', avatarUrl: '/backdrops/claude-patterson.jpg' },
+  {
+    id: 1,
+    name: 'CLAUDE PATTERSON',
+    avatarUrl: '/backdrops/claude-patterson.jpg',
+    role: 'user',
+    onboardingCompleted: false,
+    preferredGenres: [],
+    preferredMoods: [],
+  },
   ...Array.from({ length: 20 }, (_, i) => ({
     id: i + 2,
     name: `CREW MEMBER ${String(i + 2).padStart(2, '0')}`,
     avatarUrl: '/backdrops/claude-patterson.jpg',
+    role: 'user' as const,
+    onboardingCompleted: false,
+    preferredGenres: [],
+    preferredMoods: [],
   })),
 ];
 

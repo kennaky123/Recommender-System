@@ -1,5 +1,6 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { IAuthConfig } from '../../config/IConfig';
+import { normalizeUserRole } from '../../domain/types';
 import {
   AuthTokenPayload,
   ITokenProvider,
@@ -23,14 +24,20 @@ export class JwtTokenProvider implements ITokenProvider {
   }
 
   public verify(token: string): AuthTokenPayload {
-    const decoded = jwt.verify(token, this.config.jwtSecret) as AuthTokenPayload;
-    if (!decoded || !decoded.userId) {
+    const decoded = jwt.verify(token, this.config.jwtSecret);
+    if (!decoded || typeof decoded !== 'object') {
+      throw new Error('Invalid token payload');
+    }
+    const record = decoded as Record<string, unknown>;
+    const userId = Number(record.userId);
+    if (!Number.isInteger(userId) || userId <= 0) {
       throw new Error('Invalid token payload');
     }
     return {
-      userId: Number(decoded.userId),
-      email: String(decoded.email),
-      name: String(decoded.name),
+      userId,
+      email: String(record.email ?? ''),
+      name: String(record.name ?? ''),
+      role: normalizeUserRole(record.role),
     };
   }
 }
