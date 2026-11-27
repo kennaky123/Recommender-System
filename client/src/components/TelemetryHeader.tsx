@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Smartphone,
   Database,
   LogIn,
   LogOut,
@@ -11,8 +10,6 @@ import { useAuth } from '@/context/AuthContext';
 interface TelemetryHeaderProps {
   dimBrand?: boolean;
   storageMode: 'postgres' | 'memory-fallback';
-  remoteOpen: boolean;
-  onToggleRemote: () => void;
 }
 
 function formatArrivalCountdown(totalSeconds: number): string {
@@ -29,8 +26,6 @@ function formatArrivalCountdown(totalSeconds: number): string {
 export const TelemetryHeader: React.FC<TelemetryHeaderProps> = ({
   dimBrand = false,
   storageMode,
-  remoteOpen,
-  onToggleRemote,
 }) => {
   const { user, isAuthenticated, logout } = useAuth();
   const [countdown, setCountdown] = useState(199491);
@@ -168,23 +163,6 @@ export const TelemetryHeader: React.FC<TelemetryHeaderProps> = ({
               <span>SIGN IN</span>
             </Link>
           )}
-
-          <button
-            type="button"
-            onClick={onToggleRemote}
-            title="Toggle Crew Dragon Companion Remote"
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[3px] text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
-              remoteOpen
-                ? 'spacex-backlit-btn'
-                : 'border border-[#373B47] text-[#C8D0E0] hover:border-white hover:text-white'
-            }`}
-          >
-            <Smartphone
-              size={14}
-              strokeWidth={remoteOpen ? 2.2 : 1.75}
-            />
-            <span className="hidden sm:inline">REMOTE</span>
-          </button>
         </div>
       </div>
     </header>

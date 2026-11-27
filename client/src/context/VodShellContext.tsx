@@ -46,8 +46,6 @@ interface VodShellContextValue {
   setActiveMood: (mood: MoodTag) => void;
   sidebarExpanded: boolean;
   setSidebarExpanded: (expanded: boolean) => void;
-  remoteOpen: boolean;
-  setRemoteOpen: React.Dispatch<React.SetStateAction<boolean>>;
   selectedDevice: PlaybackDevice;
   setSelectedDevice: (device: PlaybackDevice) => void;
   playerState: PlayerModalState | null;
@@ -119,23 +117,9 @@ export const VodShellProvider: React.FC<{ children: React.ReactNode }> = ({
   // Zustand Cabin UI state
   const sidebarExpanded = useCabinUiStore((s) => s.sidebarExpanded);
   const setSidebarExpanded = useCabinUiStore((s) => s.setSidebarExpanded);
-  const remoteOpen = useCabinUiStore((s) => s.remoteOpen);
-  const setRemoteOpenStore = useCabinUiStore((s) => s.setRemoteOpen);
   const playerState = useCabinUiStore((s) => s.playerState);
   const openPlayer = useCabinUiStore((s) => s.openPlayer);
   const closePlayer = useCabinUiStore((s) => s.closePlayer);
-
-  const setRemoteOpen: React.Dispatch<React.SetStateAction<boolean>> =
-    useCallback(
-      (valOrUpdater) => {
-        const next =
-          typeof valOrUpdater === 'function'
-            ? valOrUpdater(useCabinUiStore.getState().remoteOpen)
-            : valOrUpdater;
-        setRemoteOpenStore(next);
-      },
-      [setRemoteOpenStore]
-    );
 
   const {
     feed,
@@ -299,8 +283,6 @@ export const VodShellProvider: React.FC<{ children: React.ReactNode }> = ({
     setActiveMood,
     sidebarExpanded,
     setSidebarExpanded,
-    remoteOpen,
-    setRemoteOpen,
     selectedDevice,
     setSelectedDevice,
     playerState,

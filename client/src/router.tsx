@@ -7,7 +7,6 @@ import {
 } from '@tanstack/react-router';
 import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { LeftSidebar } from './components/LeftSidebar';
-import { MobileRemoteDrawer } from './components/MobileRemoteDrawer';
 import { TelemetryHeader } from './components/TelemetryHeader';
 import { VidLinkPlayerModal } from './components/VidLinkPlayerModal';
 import { AuthProvider } from './context/AuthContext';
@@ -63,18 +62,13 @@ const ShellFrame: React.FC = () => {
     activeCategory,
     navigateToCategory,
     feed,
-    focusedMovie,
     toast,
     sidebarExpanded,
     setSidebarExpanded,
-    remoteOpen,
-    setRemoteOpen,
     selectedDevice,
     playerState,
     closePlayer,
-    handleToggleMyList,
     handleProgressSync,
-    handleDpadNavigate,
   } = useVodShell();
 
   return (
@@ -82,8 +76,6 @@ const ShellFrame: React.FC = () => {
       <TelemetryHeader
         dimBrand={sidebarExpanded}
         storageMode={feed?.storageMode ?? 'memory-fallback'}
-        remoteOpen={remoteOpen}
-        onToggleRemote={() => setRemoteOpen((v) => !v)}
       />
 
       <LeftSidebar
@@ -98,17 +90,6 @@ const ShellFrame: React.FC = () => {
       <main className="flex-1 relative pb-10">
         <Outlet />
       </main>
-
-      <MobileRemoteDrawer
-        open={remoteOpen}
-        activeCategory={activeCategory}
-        onClose={() => setRemoteOpen(false)}
-        onNavigate={handleDpadNavigate}
-        onSelectCategory={navigateToCategory}
-        onToggleMyList={() => {
-          if (focusedMovie) handleToggleMyList(focusedMovie.id);
-        }}
-      />
 
       {playerState && (
         <VidLinkPlayerModal

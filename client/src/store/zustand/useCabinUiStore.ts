@@ -10,14 +10,11 @@ export interface PlayerModalState {
 
 interface CabinUiState {
   sidebarExpanded: boolean;
-  remoteOpen: boolean;
   focusedMovie: RecommendedMovie | null;
   actionsVisible: boolean;
   playerState: PlayerModalState | null;
   toast: string | null;
   setSidebarExpanded: (expanded: boolean) => void;
-  setRemoteOpen: (open: boolean) => void;
-  toggleRemote: () => void;
   setFocusedMovie: (
     movie:
       | RecommendedMovie
@@ -38,15 +35,12 @@ let toastTimer: number | undefined;
  */
 export const useCabinUiStore = create<CabinUiState>((set) => ({
   sidebarExpanded: false,
-  remoteOpen: false,
   focusedMovie: null,
   actionsVisible: true,
   playerState: null,
   toast: null,
 
   setSidebarExpanded: (expanded) => set({ sidebarExpanded: expanded }),
-  setRemoteOpen: (open) => set({ remoteOpen: open }),
-  toggleRemote: () => set((s) => ({ remoteOpen: !s.remoteOpen })),
   setFocusedMovie: (movieOrUpdater) =>
     set((s) => ({
       focusedMovie:
