@@ -39,3 +39,16 @@ test('envSchema validates INTERLEAVING_PLACEMENT enum and AppConfig.fromEnv maps
   assert.equal(cfg.interleavingAlgoA, 'hybrid_borda');
   assert.equal(cfg.interleavingAlgoB, 'item_knn');
 });
+
+test('envSchema treats explicit empty INTERNAL_API_TOKEN as disabled instead of dev default', () => {
+  assert.equal(envSchema.parse({ INTERNAL_API_TOKEN: '' }).INTERNAL_API_TOKEN, '');
+  assert.equal(envSchema.parse({ INTERNAL_API_TOKEN: '   ' }).INTERNAL_API_TOKEN, '');
+  assert.equal(
+    AppConfig.fromEnv({ INTERNAL_API_TOKEN: '' }).internalApiToken,
+    ''
+  );
+  assert.equal(
+    AppConfig.fromEnv({}).internalApiToken,
+    'spacex_internal_dev_token'
+  );
+});

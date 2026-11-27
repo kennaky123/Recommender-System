@@ -114,7 +114,7 @@ export const envSchema = z.object({
     emptyToUndefined,
     z.string().trim().min(1).default('7d')
   ),
-  INTERNAL_API_TOKEN: optionalTrimmedString('spacex_internal_dev_token'),
+  INTERNAL_API_TOKEN: z.string().trim().default('spacex_internal_dev_token'),
   INTERLEAVING_ENABLED: z.preprocess(parseEnvBoolean, z.boolean().default(false)),
   INTERLEAVING_PLACEMENT: optionalEnum(
     interleavingPlacementSchema,
