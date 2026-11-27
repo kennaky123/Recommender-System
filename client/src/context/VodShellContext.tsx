@@ -26,6 +26,7 @@ export type { PlayerModalState };
 interface VodShellContextValue {
   activeCategory: NavCategory;
   navigateToCategory: (cat: NavCategory) => void;
+  navigateToMovie: (movie: RecommendedMovie) => Promise<void>;
   navigateToSeries: (movie: RecommendedMovie, season?: number) => void;
   feed: RecommendationFeed | null;
   loading: boolean;
@@ -73,7 +74,11 @@ interface VodShellContextValue {
 const VodShellContext = createContext<VodShellContextValue | null>(null);
 
 function deriveCategoryFromPath(pathname: string): NavCategory {
-  if (pathname.startsWith('/films')) return 'films';
+  if (pathname.startsWith('/discover')) return 'discover';
+  if (pathname.startsWith('/my-list')) return 'my-list';
+  if (pathname.startsWith('/films') || pathname.startsWith('/movie')) {
+    return 'films';
+  }
   if (pathname.startsWith('/shows') || pathname.startsWith('/series')) {
     return 'shows';
   }
@@ -181,6 +186,12 @@ export const VodShellProvider: React.FC<{ children: React.ReactNode }> = ({
             search: { q: '', genre: 'ALL', mediaType: 'all' },
           });
           break;
+        case 'discover':
+          navigate({ to: '/discover' });
+          break;
+        case 'my-list':
+          navigate({ to: '/my-list' });
+          break;
         case 'live':
           navigate({ to: '/live' });
           break;
@@ -212,6 +223,27 @@ export const VodShellProvider: React.FC<{ children: React.ReactNode }> = ({
       });
     },
     [navigate, setFocusedMovie]
+  );
+
+  const navigateToMovie = useCallback(
+    async (movie: RecommendedMovie) => {
+      const ensured = movie.id < 0 ? await ensureMovieInDb(movie) : movie;
+      setFocusedMovie(ensured);
+      setActionsVisible(true);
+      if (ensured.mediaType === 'tv') {
+        navigate({
+          to: '/series/$movieId',
+          params: { movieId: String(ensured.id) },
+          search: { season: ensured.lastSeason ?? 1 },
+        });
+        return;
+      }
+      navigate({
+        to: '/movie/$movieId',
+        params: { movieId: String(ensured.id) },
+      });
+    },
+    [navigate, setFocusedMovie, setActionsVisible]
   );
 
   const launchPlayer = useCallback(
@@ -252,6 +284,7 @@ export const VodShellProvider: React.FC<{ children: React.ReactNode }> = ({
   const value: VodShellContextValue = {
     activeCategory,
     navigateToCategory,
+    navigateToMovie,
     navigateToSeries,
     feed,
     loading,

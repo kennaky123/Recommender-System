@@ -14,8 +14,11 @@ import { AuthProvider } from './context/AuthContext';
 import { useVodShell, VodShellProvider } from './context/VodShellContext';
 import { CatalogPage } from './pages/CatalogPage';
 import { ChannelPage } from './pages/ChannelPage';
+import { DiscoverPage } from './pages/DiscoverPage';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
+import { MovieDetailPage } from './pages/MovieDetailPage';
+import { MyListPage } from './pages/MyListPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { SearchPage } from './pages/SearchPage';
@@ -162,6 +165,24 @@ const indexRoute = createRoute({
   component: HomePage,
 });
 
+const discoverRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/discover',
+  component: DiscoverPage,
+});
+
+const myListRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/my-list',
+  component: MyListPage,
+});
+
+const movieDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/movie/$movieId',
+  component: MovieDetailPage,
+});
+
 const filmsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/films',
@@ -239,8 +260,11 @@ const registerRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
+  discoverRoute,
   filmsRoute,
   showsRoute,
+  myListRoute,
+  movieDetailRoute,
   seriesRoute,
   searchRoute,
   liveRoute,

@@ -7,12 +7,14 @@ import {
 } from '../../domain/types';
 import { UserEntity } from '../../domain/UserEntity';
 import {
+  IMediaCatalogRepository,
   IRatingRepository,
   IStorageStatusProvider,
   IUserProfileRepository,
   IWatchHistoryRepository,
   IWatchlistRepository,
 } from '../../repositories/interfaces/RepositoryInterfaces';
+import { IArtworkResolver } from '../ArtworkResolverService';
 import {
   IExternalMediaProvider,
   IRecommendationCacheInvalidator,
@@ -40,6 +42,8 @@ export interface HybridRecommenderDeps {
   explainer: MatchReasonExplainer;
   assembler: RecommendationFeedAssembler;
   strategies: IScoringStrategy[];
+  artworkResolver?: IArtworkResolver;
+  catalogRepo?: IMediaCatalogRepository;
 }
 
 /**
@@ -154,7 +158,7 @@ export class HybridRecommendationService
       .filter((m): m is MediaEntity => Boolean(m))
       .map((m) => this.scoreCandidate(m, context));
 
-    return this.deps.assembler.assemble({
+    const feed = this.deps.assembler.assemble({
       scoredPool,
       continueWatching,
       myList,
@@ -167,6 +171,48 @@ export class HybridRecommendationService
       storageMode: this.deps.storageStatus.getStorageMode(),
       tmdbEnabled: this.deps.externalProvider.isConfigured(),
     });
+
+    if (!this.deps.artworkResolver) {
+      return feed;
+    }
+
+    const resolver = this.deps.artworkResolver;
+    const persist = this.deps.catalogRepo
+      ? (id: number, backdropUrl: string) =>
+          this.deps.catalogRepo!.updateMediaEnrichment(id, { backdropUrl })
+      : undefined;
+
+    const allFeedItems: RecommendedMovieDTO[] = [
+      feed.heroFeatured,
+      ...feed.continueWatching,
+      ...feed.newForYou,
+      ...(feed.becauseYouWatched?.items ?? []),
+      ...feed.popularSuggestions,
+      ...feed.myList,
+    ];
+    const hydratedList = await resolver.hydrateItems(allFeedItems, persist);
+    const urlById = new Map(hydratedList.map((m) => [m.id, m.backdropUrl]));
+    const applyUrl = (m: RecommendedMovieDTO): RecommendedMovieDTO => {
+      const nextUrl = urlById.get(m.id);
+      return nextUrl && nextUrl !== m.backdropUrl
+        ? { ...m, backdropUrl: nextUrl }
+        : m;
+    };
+
+    return {
+      ...feed,
+      heroFeatured: applyUrl(feed.heroFeatured),
+      continueWatching: feed.continueWatching.map(applyUrl),
+      newForYou: feed.newForYou.map(applyUrl),
+      becauseYouWatched: feed.becauseYouWatched
+        ? {
+            ...feed.becauseYouWatched,
+            items: feed.becauseYouWatched.items.map(applyUrl),
+          }
+        : null,
+      popularSuggestions: feed.popularSuggestions.map(applyUrl),
+      myList: feed.myList.map(applyUrl),
+    };
   }
 
   public async getSimilarMedia(

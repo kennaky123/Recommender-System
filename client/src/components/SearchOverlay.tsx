@@ -215,6 +215,9 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
                   src={movie.backdropUrl}
                   alt={movie.title}
                   loading="lazy"
+                  onError={(e) => {
+                    e.currentTarget.src = '/backdrops/interstellar.jpg';
+                  }}
                   className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
                 />
                 <div

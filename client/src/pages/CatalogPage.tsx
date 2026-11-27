@@ -36,6 +36,7 @@ export const CatalogPage: React.FC<CatalogPageProps> = ({ category }) => {
     handleToggleMyList,
     handleRate,
     launchPlayer,
+    navigateToMovie,
     navigateToSeries,
   } = useVodShell();
 
@@ -109,7 +110,7 @@ export const CatalogPage: React.FC<CatalogPageProps> = ({ category }) => {
         source={source}
         onChangeFilters={handleFilterChange}
         onFocusItem={setFocusedMovie}
-        onSelectItem={handleSelectMovie}
+        onSelectItem={navigateToMovie}
       />
     </>
   );

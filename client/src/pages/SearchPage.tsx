@@ -14,8 +14,7 @@ export const SearchPage: React.FC = () => {
     mediaType?: 'all' | 'movie' | 'tv';
   };
 
-  const { setFocusedMovie, setActionsVisible, navigateToCategory } =
-    useVodShell();
+  const { navigateToMovie, navigateToCategory } = useVodShell();
 
   const handleFiltersChange = useCallback(
     (next: SearchFiltersState) => {
@@ -34,11 +33,7 @@ export const SearchPage: React.FC = () => {
       initialGenre={search.genre ?? 'ALL'}
       initialMediaType={search.mediaType ?? 'all'}
       onFiltersChange={handleFiltersChange}
-      onSelectMovie={(m) => {
-        setFocusedMovie(m);
-        setActionsVisible(true);
-        navigateToCategory('home');
-      }}
+      onSelectMovie={navigateToMovie}
       onClose={() => navigateToCategory('home')}
     />
   );

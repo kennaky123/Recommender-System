@@ -27,6 +27,7 @@ export const HomePage: React.FC = () => {
     handleRate,
     launchPlayer,
     navigateToCategory,
+    navigateToMovie,
     navigateToSeries,
   } = useVodShell();
 
@@ -106,7 +107,7 @@ export const HomePage: React.FC = () => {
           focusedId={focusedMovie?.id ?? null}
           showProgress={row.showProgress}
           onFocusItem={setFocusedMovie}
-          onSelectItem={handleSelectMovie}
+          onSelectItem={navigateToMovie}
           onViewAll={
             row.allowViewAll ? () => navigateToCategory('films') : undefined
           }

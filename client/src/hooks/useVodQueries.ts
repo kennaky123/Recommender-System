@@ -7,6 +7,7 @@ import {
   fetchFullCatalog,
   fetchMovieById,
   fetchRecommendations,
+  fetchSimilarMovies,
   fetchUserProfile,
   searchCatalog,
 } from '@/api';
@@ -73,6 +74,14 @@ export function useMovieDetailQuery(movieId: number, enabled = true) {
     queryKey: vodQueryKeys.movie(movieId),
     queryFn: ({ signal }) => fetchMovieById(movieId, signal),
     enabled: enabled && Number.isFinite(movieId) && movieId > 0,
+  });
+}
+
+export function useSimilarMoviesQuery(movieId: number, userId = 1) {
+  return useQuery({
+    queryKey: vodQueryKeys.similar(movieId, userId),
+    queryFn: ({ signal }) => fetchSimilarMovies(movieId, userId, signal),
+    enabled: Number.isFinite(movieId) && movieId > 0,
   });
 }
 

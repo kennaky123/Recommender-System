@@ -8,6 +8,7 @@ import {
   IMediaCatalogRepository,
   IStorageStatusProvider,
 } from '../repositories/interfaces/RepositoryInterfaces';
+import { IArtworkResolver } from './ArtworkResolverService';
 import {
   CatalogQueryInput,
   ICatalogService,
@@ -23,6 +24,7 @@ export interface CatalogServiceDeps {
   externalProvider: IExternalMediaProvider;
   recommender: IRecommendationService;
   cacheInvalidator: IRecommendationCacheInvalidator;
+  artworkResolver: IArtworkResolver;
 }
 
 /**
@@ -99,8 +101,15 @@ export class CatalogService implements ICatalogService {
       limit: input.limit,
     });
 
+    const hydratedItems = await this.deps.artworkResolver.hydrateItems(
+      result.items,
+      (id, backdropUrl) =>
+        this.deps.catalogRepo.updateMediaEnrichment(id, { backdropUrl })
+    );
+
     return {
       ...result,
+      items: hydratedItems,
       tmdbEnabled,
       source:
         this.deps.storageStatus.getStorageMode() === 'postgres'
@@ -156,8 +165,14 @@ export class CatalogService implements ICatalogService {
       }
     }
 
+    const hydratedMovies = await this.deps.artworkResolver.hydrateItems(
+      mergedMovies,
+      (id, backdropUrl) =>
+        this.deps.catalogRepo.updateMediaEnrichment(id, { backdropUrl })
+    );
+
     return {
-      movies: mergedMovies,
+      movies: hydratedMovies,
       total,
       page: input.page,
       totalPages,
@@ -217,6 +232,8 @@ export class CatalogService implements ICatalogService {
     if (!entity) return null;
 
     const enriched = await this.deps.externalProvider.enrichMedia(entity);
+    let dto = enriched.toDTO();
+
     if (
       enriched.backdropUrl !== entity.backdropUrl ||
       enriched.trailerYoutubeId !== entity.trailerYoutubeId
@@ -226,10 +243,18 @@ export class CatalogService implements ICatalogService {
         synopsis: enriched.synopsis,
         runtimeMinutes: enriched.runtimeMinutes,
         trailerYoutubeId: enriched.trailerYoutubeId,
-        seasonsCount: enriched.toDTO().seasonsCount,
+        seasonsCount: dto.seasonsCount,
       });
+    } else if (this.deps.artworkResolver.needsHydration(dto.backdropUrl)) {
+      const [hydrated] = await this.deps.artworkResolver.hydrateItems(
+        [dto],
+        (mediaId, backdropUrl) =>
+          this.deps.catalogRepo.updateMediaEnrichment(mediaId, { backdropUrl })
+      );
+      dto = hydrated;
     }
-    return enriched.toDTO();
+
+    return dto;
   }
 
   public async getSimilar(
@@ -237,6 +262,13 @@ export class CatalogService implements ICatalogService {
     userId = 1,
     limit = 6
   ): Promise<RecommendedMovieDTO[]> {
-    return this.deps.recommender.getSimilarMedia(movieId, userId, limit);
+    const similar = await this.deps.recommender.getSimilarMedia(
+      movieId,
+      userId,
+      limit
+    );
+    return this.deps.artworkResolver.hydrateItems(similar, (id, backdropUrl) =>
+      this.deps.catalogRepo.updateMediaEnrichment(id, { backdropUrl })
+    );
   }
 }

@@ -15,9 +15,11 @@ export type MoodTag =
   | 'epic';
 export type NavCategory =
   | 'search'
+  | 'discover'
   | 'home'
   | 'films'
   | 'shows'
+  | 'my-list'
   | 'live'
   | 'audio'
   | 'settings';

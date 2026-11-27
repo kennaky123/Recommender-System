@@ -1,9 +1,11 @@
 import React from 'react';
 import {
   Search,
+  Compass,
   Home,
   Film,
   Tv,
+  Bookmark,
   Radio,
   Music,
   Settings,
@@ -29,9 +31,11 @@ const MAIN_ITEMS: Array<{
   Icon: React.ElementType;
 }> = [
   { id: 'search', label: 'SEARCH', Icon: Search },
+  { id: 'discover', label: 'DISCOVER', Icon: Compass },
   { id: 'home', label: 'HOME', Icon: Home },
   { id: 'films', label: 'FILMS', Icon: Film },
   { id: 'shows', label: 'SHOWS', Icon: Tv },
+  { id: 'my-list', label: 'MY LIST', Icon: Bookmark },
   { id: 'live', label: 'LIVE', Icon: Radio },
   { id: 'audio', label: 'AUDIO', Icon: Music },
 ];

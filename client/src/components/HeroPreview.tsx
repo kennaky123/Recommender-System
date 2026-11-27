@@ -63,6 +63,9 @@ export const HeroPreview: React.FC<HeroPreviewProps> = ({
             key={movie.id}
             src={movie.backdropUrl}
             alt={movie.title}
+            onError={(e) => {
+              e.currentTarget.src = '/backdrops/interstellar.jpg';
+            }}
             initial={{ opacity: 0, scale: 1.03 }}
             animate={{ opacity: 0.9, scale: 1 }}
             exit={{ opacity: 0 }}

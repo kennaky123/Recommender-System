@@ -16,6 +16,7 @@ import { InMemoryMediaRepository } from '../repositories/InMemoryMediaRepository
 import { AuthService } from '../services/auth/AuthService';
 import { BcryptPasswordHasher } from '../services/auth/BcryptPasswordHasher';
 import { JwtTokenProvider } from '../services/auth/JwtTokenProvider';
+import { ArtworkResolverService } from '../services/ArtworkResolverService';
 import { CatalogService } from '../services/CatalogService';
 import { CollaborativeStrategy } from '../services/recommendation/CollaborativeStrategy';
 import { ContentBasedStrategy } from '../services/recommendation/ContentBasedStrategy';
@@ -72,6 +73,7 @@ export class ServerApplication {
   public async start(): Promise<void> {
     const repository = await this.initializeRepository();
     const externalProvider = new TmdbApiClient(this.config);
+    const artworkResolver = new ArtworkResolverService(externalProvider);
 
     const indexStore = new RecommendationIndexStore(repository, repository);
     const explainer = new MatchReasonExplainer();
@@ -87,6 +89,8 @@ export class ServerApplication {
       indexStore,
       explainer,
       assembler,
+      artworkResolver,
+      catalogRepo: repository,
       strategies: [
         new ContentBasedStrategy(0.45),
         new CollaborativeStrategy(0.45),
@@ -101,6 +105,7 @@ export class ServerApplication {
       externalProvider,
       recommender,
       cacheInvalidator: recommender,
+      artworkResolver,
     });
 
     const userService = new UserActivityService({

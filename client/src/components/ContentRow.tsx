@@ -69,6 +69,9 @@ export const ContentRow: React.FC<ContentRowProps> = ({
                 src={movie.backdropUrl}
                 alt={movie.title}
                 loading="lazy"
+                onError={(e) => {
+                  e.currentTarget.src = '/backdrops/interstellar.jpg';
+                }}
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
               />
 
