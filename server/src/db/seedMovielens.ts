@@ -2,9 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import AdmZip from 'adm-zip';
 import { parse } from 'csv-parse/sync';
-import { pool } from './pool';
-import { resolveSchemaPath, seedPostgresDefaults } from './store';
-import { MoodTag, ProviderName } from '../types';
+import { MoodTag, ProviderName } from '../domain/types';
+import { DatabaseConnection } from '../repositories/DatabaseConnection';
 
 const MOVIELENS_ZIP_URL =
   'https://files.grouplens.org/datasets/movielens/ml-latest-small.zip';
@@ -141,13 +140,12 @@ async function seedMovieLens() {
     { columns: true, skip_empty_lines: true }
   ) as Array<{ movieId: string; title: string; genres: string }>;
 
-  const schemaSql = fs.readFileSync(resolveSchemaPath(), 'utf-8');
-  await pool.query(schemaSql);
-  await seedPostgresDefaults();
+  const db = DatabaseConnection.getInstance();
+  await db.applySchema();
+  await db.seedDefaults();
 
-  // Check existing movies by tmdb_id to avoid duplicating our 16 flagship showcase titles
-  const existingRes = await pool.query(
-    'SELECT id, tmdb_id, media_type, movielens_id FROM movies'
+  const existingRes = await db.pool.query(
+    'SELECT id, tmdb_id, media_type FROM movies'
   );
   const existingByTmdb = new Map<number, number>();
   for (const row of existingRes.rows) {
@@ -181,7 +179,7 @@ async function seedMovieLens() {
     processed++;
     const existingDbId = existingByTmdb.get(link.tmdbId);
     if (existingDbId) {
-      await pool.query(
+      await db.pool.query(
         'UPDATE movies SET movielens_id = $1 WHERE id = $2 AND movielens_id IS NULL',
         [mlId, existingDbId]
       );
@@ -216,7 +214,7 @@ async function seedMovieLens() {
     });
   }
 
-  const client = await pool.connect();
+  const client = await db.pool.connect();
   let insertedMovies = 0;
   try {
     await client.query('BEGIN');
@@ -260,7 +258,6 @@ async function seedMovieLens() {
       insertedMovies += chunk.length;
     }
 
-    // Parse ratings & batch insert MovieLens users + ratings
     const ratingsRows = parse(
       fs.readFileSync(path.join(datasetDir, 'ratings.csv'), 'utf-8'),
       { columns: true, skip_empty_lines: true }
@@ -343,11 +340,11 @@ async function seedMovieLens() {
     throw err;
   } finally {
     client.release();
-    await pool.end();
+    await db.close();
   }
 }
 
 seedMovieLens().catch((err) => {
-  console.error('[MovieLens Seed] Error:', err.message);
+  console.error('[MovieLens Seed] Error:', (err as Error).message);
   process.exit(1);
 });

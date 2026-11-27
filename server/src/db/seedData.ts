@@ -1,4 +1,10 @@
-import { Episode, Movie, RatingRecord, UserProfile, WatchProgressRecord } from '../types';
+import {
+  Episode,
+  MovieDTO as Movie,
+  RatingRecord,
+  UserProfile,
+  WatchProgressRecord,
+} from '../domain/types';
 
 function makeEpisodes(
   prefix: string,

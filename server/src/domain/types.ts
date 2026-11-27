@@ -25,7 +25,7 @@ export interface Episode {
   backdropUrl: string;
 }
 
-export interface Movie {
+export interface MovieDTO {
   id: number;
   movielensId?: number | null;
   tmdbId: number;
@@ -72,7 +72,7 @@ export interface WatchProgressRecord {
   updatedAt: string;
 }
 
-export interface RecommendedMovie extends Movie {
+export interface RecommendedMovieDTO extends MovieDTO {
   matchScore: number;
   matchReason: string;
   userRating?: number;
@@ -84,16 +84,16 @@ export interface RecommendedMovie extends Movie {
   ratingCount: number;
 }
 
-export interface RecommendationFeed {
-  heroFeatured: RecommendedMovie;
-  newForYou: RecommendedMovie[];
-  popularSuggestions: RecommendedMovie[];
+export interface RecommendationFeedDTO {
+  heroFeatured: RecommendedMovieDTO;
+  newForYou: RecommendedMovieDTO[];
+  popularSuggestions: RecommendedMovieDTO[];
   becauseYouWatched: {
     anchorTitle: string;
-    items: RecommendedMovie[];
+    items: RecommendedMovieDTO[];
   } | null;
-  continueWatching: RecommendedMovie[];
-  myList: RecommendedMovie[];
+  continueWatching: RecommendedMovieDTO[];
+  myList: RecommendedMovieDTO[];
   storageMode: 'postgres' | 'memory-fallback';
   tmdbEnabled: boolean;
   engineStats: {
@@ -108,11 +108,22 @@ export interface RecommendationFeed {
   };
 }
 
+export interface SearchPaginatedParams {
+  userId?: number;
+  query?: string;
+  mood?: MoodTag;
+  genre?: string;
+  mediaType?: 'all' | 'movie' | 'tv';
+  sort?: CatalogSort;
+  page?: number;
+  limit?: number;
+}
+
 export interface PaginatedCatalogResult {
-  items: RecommendedMovie[];
+  items: RecommendedMovieDTO[];
   total: number;
   page: number;
   totalPages: number;
-  tmdbEnabled: boolean;
-  source: string;
+  tmdbEnabled?: boolean;
+  source?: string;
 }

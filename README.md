@@ -42,7 +42,20 @@ npm run dev
 - Frontend: `http://localhost:5173`
 - Backend API: `http://localhost:5050` (PostgreSQL Docker chạy ở cổng `5433` để tránh xung đột cổng `5432` mặc định)
 
-## Kiến trúc Recommendation Engine & VidLink Feedback Loop
+## Kiến trúc Backend OOP & Recommendation Engine
+
+Backend (`server/src/`) được thiết kế theo kiến trúc **OOP phân tầng** kết hợp các Design Pattern:
+
+* **`config/` & `repositories/DatabaseConnection.ts` (Singleton):** `AppConfig` nạp cấu hình `.env`; `DatabaseConnection` quản lý PostgreSQL `pg.Pool`, schema & seed dữ liệu.
+* **`domain/` (Abstraction, Inheritance, Polymorphism & Factory):**
+  * `MediaEntity` *(abstract)* → `MovieEntity` & `SeriesEntity` (đa hình `getStreamUrl()`, `getMediaCategoryLabel()`, vector hóa đặc trưng).
+  * `UserEntity` đóng gói hồ sơ, ratings, watchlist và watch history.
+  * `MediaFactory` khởi tạo entity từ DTO, bản ghi PostgreSQL hoặc dữ liệu TMDB.
+* **`repositories/` (Repository Pattern & DIP):** Interface `IMediaRepository` với 2 implementation `PostgresMediaRepository` (PostgreSQL chính) và `InMemoryMediaRepository` (fallback tự động).
+* **`services/recommendation/` (Strategy Pattern):** `HybridRecommendationService` kết hợp các chiến lược chấm điểm độc lập `ContentBasedStrategy` (45%), `CollaborativeStrategy` (45%) và `PopularityPriorStrategy` (10%).
+* **`controllers/` & `app/ServerApplication.ts` (Template/BaseController & Constructor DI):** `HealthController`, `MovieController`, `RecommendationController`, `UserController` kế thừa `BaseController` và được `ServerApplication` tiêm phụ thuộc khi khởi động.
+
+### Luồng Recommendation & VidLink Feedback Loop
 
 1. **Content-Based Filtering (45%):** Xây dựng vector đặc trưng từ `genres`, `tags`, `moods`, kết hợp vector sở thích người dùng (từ ratings, watchlist, tiến độ xem) bằng **Cosine Similarity**.
 2. **Item-Based Collaborative Filtering (45%):** Tính ma trận tương đồng giữa các phim từ bảng `ratings` cộng đồng để dự đoán điểm cá nhân hóa.
