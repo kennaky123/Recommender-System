@@ -4,11 +4,23 @@ import { fetchFullCatalog } from '../api';
 import { CatalogSort, MoodTag, RecommendedMovie } from '../types';
 import { ProviderLogo } from './ProviderLogo';
 
+export interface CatalogFilterState {
+  genre: string;
+  sort: CatalogSort;
+  page: number;
+  source: 'auto' | 'tmdb';
+}
+
 interface FullCatalogGridProps {
   category: 'all' | 'films' | 'shows';
   activeMood: MoodTag;
   focusedId: number | null;
   tmdbEnabled: boolean;
+  genre?: string;
+  sort?: CatalogSort;
+  page?: number;
+  source?: 'auto' | 'tmdb';
+  onChangeFilters?: (next: CatalogFilterState) => void;
   onFocusItem: (movie: RecommendedMovie) => void;
   onSelectItem: (movie: RecommendedMovie) => void;
 }
@@ -32,22 +44,46 @@ export const FullCatalogGrid: React.FC<FullCatalogGridProps> = ({
   activeMood,
   focusedId,
   tmdbEnabled,
+  genre: controlledGenre,
+  sort: controlledSort,
+  page: controlledPage,
+  source: controlledSource,
+  onChangeFilters,
   onFocusItem,
   onSelectItem,
 }) => {
-  const [genre, setGenre] = useState('ALL');
-  const [sort, setSort] = useState<CatalogSort>('popular');
-  const [source, setSource] = useState<'auto' | 'tmdb'>('auto');
-  const [page, setPage] = useState(1);
+  const [localGenre, setLocalGenre] = useState('ALL');
+  const [localSort, setLocalSort] = useState<CatalogSort>('popular');
+  const [localSource, setLocalSource] = useState<'auto' | 'tmdb'>('auto');
+  const [localPage, setLocalPage] = useState(1);
+
+  const genre = controlledGenre ?? localGenre;
+  const sort = controlledSort ?? localSort;
+  const source = controlledSource ?? localSource;
+  const page = controlledPage ?? localPage;
+
   const [items, setItems] = useState<RecommendedMovie[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [activeSource, setActiveSource] = useState('postgres');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    setPage(1);
-  }, [category, genre, sort, activeMood, source]);
+  const updateFilters = (patch: Partial<CatalogFilterState>) => {
+    const next: CatalogFilterState = {
+      genre: patch.genre ?? genre,
+      sort: patch.sort ?? sort,
+      source: patch.source ?? source,
+      page: patch.page ?? page,
+    };
+    if (onChangeFilters) {
+      onChangeFilters(next);
+    } else {
+      setLocalGenre(next.genre);
+      setLocalSort(next.sort);
+      setLocalSource(next.source);
+      setLocalPage(next.page);
+    }
+  };
 
   useEffect(() => {
     let alive = true;
@@ -91,7 +127,8 @@ export const FullCatalogGrid: React.FC<FullCatalogGridProps> = ({
           </h2>
           <p className="text-[11px] uppercase tracking-[0.1em] text-[#87899D] mt-0.5 tabular-nums">
             {total.toLocaleString()} TITLES AVAILABLE • PAGE {page} / {totalPages} •
-            SOURCE: <span className="text-[#F0EA75]">{activeSource.toUpperCase()}</span>
+            SOURCE:{' '}
+            <span className="text-[#F0EA75]">{activeSource.toUpperCase()}</span>
           </p>
         </div>
 
@@ -100,7 +137,7 @@ export const FullCatalogGrid: React.FC<FullCatalogGridProps> = ({
             <div className="flex items-center border border-[#373B47] rounded-[2px] overflow-hidden">
               <button
                 type="button"
-                onClick={() => setSource('auto')}
+                onClick={() => updateFilters({ source: 'auto', page: 1 })}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider cursor-pointer ${
                   source === 'auto'
                     ? 'bg-white text-[#0F1429]'
@@ -112,7 +149,7 @@ export const FullCatalogGrid: React.FC<FullCatalogGridProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => setSource('tmdb')}
+                onClick={() => updateFilters({ source: 'tmdb', page: 1 })}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider cursor-pointer ${
                   source === 'tmdb'
                     ? 'bg-white text-[#0F1429]'
@@ -127,7 +164,9 @@ export const FullCatalogGrid: React.FC<FullCatalogGridProps> = ({
 
           <select
             value={sort}
-            onChange={(e) => setSort(e.target.value as CatalogSort)}
+            onChange={(e) =>
+              updateFilters({ sort: e.target.value as CatalogSort, page: 1 })
+            }
             aria-label="Sort catalog"
             className="h-8 px-3 bg-[#060914] border border-[#373B47] rounded-[2px] text-[11px] font-bold uppercase tracking-wider text-white focus:outline-none focus:border-white cursor-pointer"
           >
@@ -144,7 +183,7 @@ export const FullCatalogGrid: React.FC<FullCatalogGridProps> = ({
           <button
             key={g}
             type="button"
-            onClick={() => setGenre(g)}
+            onClick={() => updateFilters({ genre: g, page: 1 })}
             className={`px-3 py-1 text-[11px] font-bold uppercase tracking-[0.06em] rounded-[2px] border cursor-pointer transition-colors ${
               genre === g
                 ? 'bg-white text-[#0F1429] border-white'
@@ -232,7 +271,7 @@ export const FullCatalogGrid: React.FC<FullCatalogGridProps> = ({
           <button
             type="button"
             disabled={page <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            onClick={() => updateFilters({ page: Math.max(1, page - 1) })}
             className="inline-flex items-center gap-2 px-4 py-2 border border-[#373B47] rounded-[3px] text-[12px] font-bold uppercase tracking-wider text-white disabled:opacity-35 hover:border-white cursor-pointer disabled:cursor-not-allowed"
           >
             <CaretLeft size={14} weight="bold" />
@@ -246,7 +285,9 @@ export const FullCatalogGrid: React.FC<FullCatalogGridProps> = ({
           <button
             type="button"
             disabled={page >= totalPages}
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            onClick={() =>
+              updateFilters({ page: Math.min(totalPages, page + 1) })
+            }
             className="inline-flex items-center gap-2 px-4 py-2 border border-[#373B47] rounded-[3px] text-[12px] font-bold uppercase tracking-wider text-white disabled:opacity-35 hover:border-white cursor-pointer disabled:cursor-not-allowed"
           >
             <span>NEXT</span>

@@ -4,7 +4,7 @@
 
 ## Tech Stack
 
-- **Frontend:** Vite + React + TypeScript + Tailwind CSS v4 + `@phosphor-icons/react`
+- **Frontend:** Vite + React + TypeScript + **TanStack Router** (type-safe routes & URL-synced search params) + Tailwind CSS v4 + `@phosphor-icons/react`
 - **Backend:** Node.js + Express + TypeScript (`tsx`)
 - **Database:** PostgreSQL 16 (`pg` driver + SQL schema + automatic `InMemoryFallbackStore` nếu PostgreSQL chưa khởi chạy)
 - **Streaming:** VidLink Pro (`https://vidlink.pro/movie/{tmdbId}` & `/tv/{tmdbId}/{season}/{episode}`) + `postMessage` Continue Watching listener

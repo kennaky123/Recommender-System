@@ -58,6 +58,22 @@ export async function fetchSimilarMovies(
   return data.items;
 }
 
+export async function fetchMovieById(
+  movieId: number
+): Promise<RecommendedMovie> {
+  const res = await fetch(`/api/movies/${movieId}`);
+  if (!res.ok) throw new Error('Failed to load title details');
+  const data = (await res.json()) as { movie: RecommendedMovie };
+  return {
+    ...data.movie,
+    matchScore: data.movie.matchScore ?? 92,
+    matchReason: data.movie.matchReason ?? `TMDB #${data.movie.tmdbId}`,
+    inMyList: data.movie.inMyList ?? false,
+    communityRating: data.movie.communityRating ?? 4.5,
+    ratingCount: data.movie.ratingCount ?? 0,
+  };
+}
+
 export async function searchCatalog(
   query: string,
   mood: MoodTag = 'all',

@@ -4,7 +4,17 @@ import { ensureMovieInDb, searchCatalog } from '../api';
 import { RecommendedMovie } from '../types';
 import { ProviderLogo } from './ProviderLogo';
 
+export interface SearchFiltersState {
+  q: string;
+  genre: string;
+  mediaType: 'all' | 'movie' | 'tv';
+}
+
 interface SearchOverlayProps {
+  initialQuery?: string;
+  initialGenre?: string;
+  initialMediaType?: 'all' | 'movie' | 'tv';
+  onFiltersChange?: (next: SearchFiltersState) => void;
   onSelectMovie: (movie: RecommendedMovie) => void;
   onClose: () => void;
 }
@@ -23,12 +33,18 @@ const GENRES = [
 ];
 
 export const SearchOverlay: React.FC<SearchOverlayProps> = ({
+  initialQuery = '',
+  initialGenre = 'ALL',
+  initialMediaType = 'all',
+  onFiltersChange,
   onSelectMovie,
   onClose,
 }) => {
-  const [query, setQuery] = useState('');
-  const [genre, setGenre] = useState('ALL');
-  const [mediaType, setMediaType] = useState<'all' | 'movie' | 'tv'>('all');
+  const [query, setQuery] = useState(initialQuery);
+  const [genre, setGenre] = useState(initialGenre);
+  const [mediaType, setMediaType] = useState<'all' | 'movie' | 'tv'>(
+    initialMediaType
+  );
   const [page, setPage] = useState(1);
   const [results, setResults] = useState<RecommendedMovie[]>([]);
   const [total, setTotal] = useState(0);
@@ -38,6 +54,12 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    setQuery(initialQuery);
+    setGenre(initialGenre);
+    setMediaType(initialMediaType);
+  }, [initialQuery, initialGenre, initialMediaType]);
+
+  useEffect(() => {
     setPage(1);
   }, [query, genre, mediaType]);
 
@@ -45,6 +67,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
     let active = true;
     setLoading(true);
     const timer = window.setTimeout(() => {
+      onFiltersChange?.({ q: query, genre, mediaType });
       searchCatalog(query, 'all', genre, mediaType, page, 24)
         .then((res) => {
           if (!active) return;
@@ -65,7 +88,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
       active = false;
       window.clearTimeout(timer);
     };
-  }, [query, genre, mediaType, page]);
+  }, [query, genre, mediaType, page, onFiltersChange]);
 
   const handlePickMovie = async (movie: RecommendedMovie) => {
     const ensured = movie.id < 0 ? await ensureMovieInDb(movie) : movie;
