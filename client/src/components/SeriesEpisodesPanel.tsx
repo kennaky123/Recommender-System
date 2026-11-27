@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Play } from '@phosphor-icons/react';
+import { ArrowLeft, Play } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -55,7 +55,7 @@ export const SeriesEpisodesPanel: React.FC<SeriesEpisodesPanelProps> = ({
           onClick={onBack}
           className="text-[#C8D0E0] hover:text-white"
         >
-          <ArrowLeft size={14} weight="bold" />
+          <ArrowLeft size={14} strokeWidth={2.2} />
           <span>BACK TO ROWS</span>
         </Button>
       </div>
@@ -97,7 +97,7 @@ export const SeriesEpisodesPanel: React.FC<SeriesEpisodesPanelProps> = ({
                 S{ep.season} EP{ep.episode}
               </Badge>
               <div className="absolute top-2.5 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Play size={18} weight="fill" className="text-[#F0EA75]" />
+                <Play size={18} fill="currentColor" strokeWidth={1.75} className="text-[#F0EA75]" />
               </div>
               <div className="absolute bottom-2.5 left-3 right-3">
                 <div className="text-[13px] font-bold uppercase text-white leading-tight line-clamp-1">

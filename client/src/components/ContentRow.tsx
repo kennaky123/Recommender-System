@@ -1,5 +1,6 @@
 import React from 'react';
-import { ArrowRight } from '@phosphor-icons/react';
+import { ArrowRight } from 'lucide-react';
+import { motion } from 'motion/react';
 import { RecommendedMovie } from '../types';
 import { ProviderLogo } from './ProviderLogo';
 
@@ -40,7 +41,7 @@ export const ContentRow: React.FC<ContentRowProps> = ({
             className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[#B8C0D4] hover:text-[#F0EA75] transition-colors cursor-pointer"
           >
             <span>{viewAllLabel ?? 'BROWSE ALL'}</span>
-            <ArrowRight size={13} weight="bold" />
+            <ArrowRight size={13} strokeWidth={2.2} />
           </button>
         )}
       </div>
@@ -49,13 +50,16 @@ export const ContentRow: React.FC<ContentRowProps> = ({
         {items.map((movie) => {
           const isFocused = focusedId === movie.id;
           return (
-            <button
+            <motion.button
               key={movie.id}
               type="button"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.985 }}
+              transition={{ duration: 0.16, ease: 'easeOut' }}
               onMouseEnter={() => onFocusItem(movie)}
               onFocus={() => onFocusItem(movie)}
               onClick={() => onSelectItem(movie)}
-              className={`group relative flex-none w-[240px] sm:w-[270px] lg:w-[calc((100%-56px)/4.72)] aspect-video rounded-[6px] overflow-hidden bg-[#131A35] text-left transition-all duration-200 cursor-pointer focus:outline-none ${
+              className={`group relative flex-none w-[240px] sm:w-[270px] lg:w-[calc((100%-56px)/4.72)] aspect-video rounded-[6px] overflow-hidden bg-[#131A35] text-left transition-opacity duration-200 cursor-pointer focus:outline-none ${
                 isFocused
                   ? 'spacex-card-focused scale-[1.015]'
                   : 'opacity-90 hover:opacity-100'
@@ -100,7 +104,7 @@ export const ContentRow: React.FC<ContentRowProps> = ({
                   />
                 </div>
               )}
-            </button>
+            </motion.button>
           );
         })}
       </div>

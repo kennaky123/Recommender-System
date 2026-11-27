@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CaretLeft, CaretRight, Database, Globe } from '@phosphor-icons/react';
+import { ChevronLeft, ChevronRight, Database, Globe } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -261,7 +261,7 @@ export const FullCatalogGrid: React.FC<FullCatalogGridProps> = ({
             disabled={page <= 1}
             onClick={() => updateFilters({ page: Math.max(1, page - 1) })}
           >
-            <CaretLeft size={14} weight="bold" />
+            <ChevronLeft size={14} strokeWidth={2.2} />
             <span>PREVIOUS</span>
           </Button>
 
@@ -278,7 +278,7 @@ export const FullCatalogGrid: React.FC<FullCatalogGridProps> = ({
             }
           >
             <span>NEXT</span>
-            <CaretRight size={14} weight="bold" />
+            <ChevronRight size={14} strokeWidth={2.2} />
           </Button>
         </div>
       )}

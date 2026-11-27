@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import {
-  DeviceMobileCamera,
+  Smartphone,
   Database,
-  SignIn,
-  SignOut,
-} from '@phosphor-icons/react';
+  LogIn,
+  LogOut,
+} from 'lucide-react';
 import { Link } from '@tanstack/react-router';
 import { useAuth } from '@/context/AuthContext';
 
@@ -139,7 +139,7 @@ export const TelemetryHeader: React.FC<TelemetryHeaderProps> = ({
           >
             <Database
               size={12}
-              weight="bold"
+              strokeWidth={2.2}
               className={
                 storageMode === 'postgres' ? 'text-[#F0EA75]' : 'text-[#87899D]'
               }
@@ -154,7 +154,7 @@ export const TelemetryHeader: React.FC<TelemetryHeaderProps> = ({
               title={`Signed in as ${user.name} (${user.email}) — Click to Sign Out`}
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[3px] text-[11px] font-bold uppercase tracking-wider border border-[#F0EA75]/60 text-[#F0EA75] hover:bg-[#F0EA75]/10 cursor-pointer"
             >
-              <SignOut size={14} weight="bold" />
+              <LogOut size={14} strokeWidth={2.2} />
               <span className="hidden md:inline max-w-[110px] truncate">
                 {user.name}
               </span>
@@ -164,7 +164,7 @@ export const TelemetryHeader: React.FC<TelemetryHeaderProps> = ({
               to="/login"
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[3px] text-[11px] font-bold uppercase tracking-wider border border-[#373B47] text-[#C8D0E0] hover:border-white hover:text-white"
             >
-              <SignIn size={14} weight="bold" />
+              <LogIn size={14} strokeWidth={2.2} />
               <span>SIGN IN</span>
             </Link>
           )}
@@ -179,9 +179,9 @@ export const TelemetryHeader: React.FC<TelemetryHeaderProps> = ({
                 : 'border border-[#373B47] text-[#C8D0E0] hover:border-white hover:text-white'
             }`}
           >
-            <DeviceMobileCamera
+            <Smartphone
               size={14}
-              weight={remoteOpen ? 'fill' : 'regular'}
+              strokeWidth={remoteOpen ? 2.2 : 1.75}
             />
             <span className="hidden sm:inline">REMOTE</span>
           </button>

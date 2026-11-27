@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Eye, EyeSlash, UserPlus } from '@phosphor-icons/react';
+import { Eye, EyeOff, UserPlus } from 'lucide-react';
+import { motion } from 'motion/react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { Badge } from '@/components/ui/badge';
@@ -54,7 +55,13 @@ export const RegisterPage: React.FC = () => {
 
   return (
     <div className="relative z-10 pl-20 lg:pl-24 pr-8 py-10 min-h-[calc(100dvh-66px)] flex items-center justify-center">
-      <Card className="w-full max-w-md border-[#373B47] bg-[#0B1023]/95 shadow-2xl">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.22, ease: 'easeOut' }}
+        className="w-full max-w-md"
+      >
+        <Card className="w-full border-[#373B47] bg-[#0B1023]/95 shadow-2xl">
         <CardHeader className="space-y-2 pb-4">
           <div className="flex items-center justify-between">
             <Badge variant="gold">NEW PASSENGER ENROLLMENT</Badge>
@@ -150,7 +157,7 @@ export const RegisterPage: React.FC = () => {
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[#87899D] hover:text-white cursor-pointer"
                 >
-                  {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={18} strokeWidth={1.75} /> : <Eye size={18} strokeWidth={1.75} />}
                 </button>
               </div>
               {errors.password && (
@@ -187,7 +194,7 @@ export const RegisterPage: React.FC = () => {
               disabled={isSubmitting}
               className="w-full mt-2"
             >
-              <UserPlus size={16} weight="bold" />
+              <UserPlus size={16} strokeWidth={2.2} />
               <span>
                 {isSubmitting ? 'CREATING PROFILE...' : 'CREATE ACCOUNT'}
               </span>
@@ -204,7 +211,8 @@ export const RegisterPage: React.FC = () => {
             </div>
           </form>
         </CardContent>
-      </Card>
+        </Card>
+      </motion.div>
     </div>
   );
 };

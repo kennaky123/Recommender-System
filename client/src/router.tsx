@@ -5,6 +5,7 @@ import {
   createRouter,
   Outlet,
 } from '@tanstack/react-router';
+import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { LeftSidebar } from './components/LeftSidebar';
 import { MobileRemoteDrawer } from './components/MobileRemoteDrawer';
 import { TelemetryHeader } from './components/TelemetryHeader';
@@ -118,21 +119,32 @@ const ShellFrame: React.FC = () => {
         />
       )}
 
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-50 px-4 py-2.5 bg-[#060914] border border-[#F0EA75] text-[#F0EA75] text-[11px] font-bold uppercase tracking-[0.1em] rounded-[3px] shadow-2xl">
-          {toast}
-        </div>
-      )}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            key={toast}
+            initial={{ opacity: 0, y: 14, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.96 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="fixed bottom-6 right-6 z-50 px-4 py-2.5 bg-[#060914] border border-[#F0EA75] text-[#F0EA75] text-[11px] font-bold uppercase tracking-[0.1em] rounded-[3px] shadow-2xl"
+          >
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
 
 const RootLayout: React.FC = () => (
-  <AuthProvider>
-    <VodShellProvider>
-      <ShellFrame />
-    </VodShellProvider>
-  </AuthProvider>
+  <MotionConfig reducedMotion="user">
+    <AuthProvider>
+      <VodShellProvider>
+        <ShellFrame />
+      </VodShellProvider>
+    </AuthProvider>
+  </MotionConfig>
 );
 
 const rootRoute = createRootRoute({

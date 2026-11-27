@@ -1,14 +1,15 @@
 import React from 'react';
 import {
-  MagnifyingGlass,
-  House,
-  FilmReel,
-  TelevisionSimple,
-  Broadcast,
-  MusicNote,
-  GearSix,
-  SignIn,
-} from '@phosphor-icons/react';
+  Search,
+  Home,
+  Film,
+  Tv,
+  Radio,
+  Music,
+  Settings,
+  LogIn,
+} from 'lucide-react';
+import { motion } from 'motion/react';
 import { Link } from '@tanstack/react-router';
 import { useAuth } from '@/context/AuthContext';
 import { NavCategory } from '../types';
@@ -27,12 +28,12 @@ const MAIN_ITEMS: Array<{
   label: string;
   Icon: React.ElementType;
 }> = [
-  { id: 'search', label: 'SEARCH', Icon: MagnifyingGlass },
-  { id: 'home', label: 'HOME', Icon: House },
-  { id: 'films', label: 'FILMS', Icon: FilmReel },
-  { id: 'shows', label: 'SHOWS', Icon: TelevisionSimple },
-  { id: 'live', label: 'LIVE', Icon: Broadcast },
-  { id: 'audio', label: 'AUDIO', Icon: MusicNote },
+  { id: 'search', label: 'SEARCH', Icon: Search },
+  { id: 'home', label: 'HOME', Icon: Home },
+  { id: 'films', label: 'FILMS', Icon: Film },
+  { id: 'shows', label: 'SHOWS', Icon: Tv },
+  { id: 'live', label: 'LIVE', Icon: Radio },
+  { id: 'audio', label: 'AUDIO', Icon: Music },
 ];
 
 export const LeftSidebar: React.FC<LeftSidebarProps> = ({
@@ -49,13 +50,16 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     user?.avatarUrl ?? avatarUrl ?? '/backdrops/claude-patterson.jpg';
 
   return (
-    <aside
+    <motion.aside
       onMouseEnter={() => onExpandChange(true)}
       onMouseLeave={() => onExpandChange(false)}
-      className={`fixed left-0 top-[66px] bottom-0 z-40 flex flex-col justify-between py-6 transition-all duration-200 select-none ${
+      initial={false}
+      animate={{ width: expanded ? 285 : 76 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+      className={`fixed left-0 top-[66px] bottom-0 z-40 flex flex-col justify-between py-6 select-none overflow-hidden ${
         expanded
-          ? 'w-[285px] pl-6 pr-8 bg-gradient-to-r from-[#04060A] via-[#060914]/95 to-transparent'
-          : 'w-[76px] pl-5 pr-2 bg-transparent'
+          ? 'pl-6 pr-8 bg-gradient-to-r from-[#04060A] via-[#060914]/95 to-transparent'
+          : 'pl-5 pr-2 bg-transparent'
       }`}
     >
       <div className="flex flex-col gap-5">
@@ -93,21 +97,28 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 key={id}
                 type="button"
                 onClick={() => onSelectCategory(id)}
-                className={`relative flex items-center gap-4 h-11 px-2.5 transition-all cursor-pointer focus:outline-none ${
+                className={`relative flex items-center gap-4 h-11 px-2.5 transition-colors cursor-pointer focus:outline-none ${
                   expanded && isActive
-                    ? 'spacex-backlit-btn text-[#0F1429] font-bold'
+                    ? 'text-[#0F1429] font-bold'
                     : isActive
                     ? 'text-white font-bold'
                     : 'text-white/55 hover:text-white'
                 }`}
               >
+                {expanded && isActive && (
+                  <motion.span
+                    layoutId="sidebar-active-pill"
+                    transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                    className="absolute inset-0 spacex-backlit-btn"
+                  />
+                )}
                 <Icon
                   size={20}
-                  weight={isActive ? 'fill' : 'regular'}
-                  className="shrink-0"
+                  strokeWidth={isActive ? 2.15 : 1.75}
+                  className="relative z-10 shrink-0"
                 />
                 {expanded && (
-                  <span className="text-[13px] font-bold uppercase tracking-[0.08em] whitespace-nowrap">
+                  <span className="relative z-10 text-[13px] font-bold uppercase tracking-[0.08em] whitespace-nowrap">
                     {label}
                   </span>
                 )}
@@ -124,7 +135,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             to="/login"
             className="relative flex items-center gap-4 h-11 px-2.5 text-[#F0EA75]/85 hover:text-[#F0EA75] transition-all"
           >
-            <SignIn size={20} className="shrink-0" />
+            <LogIn size={20} strokeWidth={1.75} className="shrink-0" />
             {expanded && (
               <span className="text-[13px] font-bold uppercase tracking-[0.08em] whitespace-nowrap">
                 SIGN IN
@@ -136,26 +147,33 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         <button
           type="button"
           onClick={() => onSelectCategory('settings')}
-          className={`relative flex items-center gap-4 h-11 px-2.5 transition-all cursor-pointer focus:outline-none ${
+          className={`relative flex items-center gap-4 h-11 px-2.5 transition-colors cursor-pointer focus:outline-none ${
             expanded && activeCategory === 'settings'
-              ? 'spacex-backlit-btn text-[#0F1429] font-bold'
+              ? 'text-[#0F1429] font-bold'
               : activeCategory === 'settings'
               ? 'text-white font-bold'
               : 'text-white/55 hover:text-white'
           }`}
         >
-          <GearSix
+          {expanded && activeCategory === 'settings' && (
+            <motion.span
+              layoutId="sidebar-active-pill"
+              transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+              className="absolute inset-0 spacex-backlit-btn"
+            />
+          )}
+          <Settings
             size={20}
-            weight={activeCategory === 'settings' ? 'fill' : 'regular'}
-            className="shrink-0"
+            strokeWidth={activeCategory === 'settings' ? 2.15 : 1.75}
+            className="relative z-10 shrink-0"
           />
           {expanded && (
-            <span className="text-[13px] font-bold uppercase tracking-[0.08em] whitespace-nowrap">
+            <span className="relative z-10 text-[13px] font-bold uppercase tracking-[0.08em] whitespace-nowrap">
               SETTINGS
             </span>
           )}
         </button>
       </div>
-    </aside>
+    </motion.aside>
   );
 };

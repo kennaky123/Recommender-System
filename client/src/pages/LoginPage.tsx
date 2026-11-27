@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Eye, EyeSlash, SignIn, Sparkle } from '@phosphor-icons/react';
+import { Eye, EyeOff, LogIn, Sparkles } from 'lucide-react';
+import { motion } from 'motion/react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { Badge } from '@/components/ui/badge';
@@ -51,7 +52,13 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div className="relative z-10 pl-20 lg:pl-24 pr-8 py-12 min-h-[calc(100dvh-66px)] flex items-center justify-center">
-      <Card className="w-full max-w-md border-[#373B47] bg-[#0B1023]/95 shadow-2xl">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.22, ease: 'easeOut' }}
+        className="w-full max-w-md"
+      >
+        <Card className="w-full border-[#373B47] bg-[#0B1023]/95 shadow-2xl">
         <CardHeader className="space-y-2 pb-4">
           <div className="flex items-center justify-between">
             <Badge variant="gold">CREW AUTHENTICATION</Badge>
@@ -126,7 +133,7 @@ export const LoginPage: React.FC = () => {
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[#87899D] hover:text-white cursor-pointer"
                 >
-                  {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={18} strokeWidth={1.75} /> : <Eye size={18} strokeWidth={1.75} />}
                 </button>
               </div>
               {errors.password && (
@@ -142,7 +149,7 @@ export const LoginPage: React.FC = () => {
               disabled={isSubmitting}
               className="w-full mt-2"
             >
-              <SignIn size={16} weight="bold" />
+              <LogIn size={16} strokeWidth={2.2} />
               <span>{isSubmitting ? 'AUTHENTICATING...' : 'SIGN IN'}</span>
             </Button>
 
@@ -152,7 +159,7 @@ export const LoginPage: React.FC = () => {
               onClick={fillDemo}
               className="w-full"
             >
-              <Sparkle size={14} weight="fill" className="text-[#F0EA75]" />
+              <Sparkles size={14} strokeWidth={2} className="text-[#F0EA75]" />
               <span>USE DEMO CREW ACCOUNT (CLAUDE PATTERSON)</span>
             </Button>
 
@@ -167,7 +174,8 @@ export const LoginPage: React.FC = () => {
             </div>
           </form>
         </CardContent>
-      </Card>
+        </Card>
+      </motion.div>
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, FastForward, MonitorPlay, Sparkle } from '@phosphor-icons/react';
+import { X, FastForward, MonitorPlay, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -131,7 +131,7 @@ export const VidLinkPlayerModal: React.FC<VidLinkPlayerModalProps> = ({
                 className="hidden sm:inline-flex border-[#87899D] hover:border-[#F0EA75] hover:text-[#F0EA75]"
                 title="Simulate VidLink postMessage implicit feedback for recommendation engine"
               >
-                <FastForward size={13} weight="bold" />
+                <FastForward size={13} strokeWidth={2.2} />
                 <span>SYNC +25% PROGRESS</span>
               </Button>
             )}
@@ -143,7 +143,7 @@ export const VidLinkPlayerModal: React.FC<VidLinkPlayerModalProps> = ({
               onClick={onClose}
               className="bg-white/10 hover:bg-white hover:text-[#0F1429]"
             >
-              <X size={14} weight="bold" />
+              <X size={14} strokeWidth={2.2} />
               <span>CLOSE (ESC)</span>
             </Button>
           </div>
@@ -151,7 +151,7 @@ export const VidLinkPlayerModal: React.FC<VidLinkPlayerModalProps> = ({
 
         {telemetryNotice && (
           <div className="px-6 py-1.5 bg-[#101831] border-b border-[#373B47] flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-[#F0EA75]">
-            <Sparkle size={13} weight="fill" />
+            <Sparkles size={13} strokeWidth={2} />
             <span>{telemetryNotice}</span>
           </div>
         )}

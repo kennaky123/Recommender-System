@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { MagnifyingGlass, X, Database, Globe } from '@phosphor-icons/react';
+import { Search, X, Database, Globe } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -128,7 +128,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
           size="sm"
           onClick={onClose}
         >
-          <X size={14} weight="bold" />
+          <X size={14} strokeWidth={2.2} />
           <span>BACK TO HOME</span>
         </Button>
       </div>
@@ -136,8 +136,9 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
       {/* Search Input + Media Type Switch */}
       <div className="flex flex-wrap items-center gap-3 mb-5">
         <div className="relative flex-1 min-w-[260px] max-w-2xl">
-          <MagnifyingGlass
+          <Search
             size={18}
+            strokeWidth={1.75}
             className="absolute left-4 top-1/2 -translate-y-1/2 text-[#87899D]"
           />
           <Input

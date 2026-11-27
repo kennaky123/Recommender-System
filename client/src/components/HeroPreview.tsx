@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import {
-  TelevisionSimple,
+  Tv,
   UserPlus,
   Check,
   Star,
-  ListBullets,
-  CaretDown,
-} from '@phosphor-icons/react';
+  List,
+  ChevronDown,
+} from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -57,11 +58,18 @@ export const HeroPreview: React.FC<HeroPreviewProps> = ({
     <section className="relative w-full min-h-[340px] lg:min-h-[395px] flex items-end pb-7 pt-7 pl-20 pr-8 lg:pl-24 lg:pr-12 overflow-hidden">
       {/* Right-Weighted Full-Bleed Cinematic Backdrop */}
       <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden bg-[#0F1429]">
-        <img
-          src={movie.backdropUrl}
-          alt={movie.title}
-          className="absolute right-0 top-0 h-full w-full md:w-[74%] object-cover object-center opacity-90 transition-all duration-500"
-        />
+        <AnimatePresence mode="wait">
+          <motion.img
+            key={movie.id}
+            src={movie.backdropUrl}
+            alt={movie.title}
+            initial={{ opacity: 0, scale: 1.03 }}
+            animate={{ opacity: 0.9, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4, ease: 'easeOut' }}
+            className="absolute right-0 top-0 h-full w-full md:w-[74%] object-cover object-center"
+          />
+        </AnimatePresence>
         <div
           className="absolute inset-0"
           style={{
@@ -79,7 +87,15 @@ export const HeroPreview: React.FC<HeroPreviewProps> = ({
       </div>
 
       {/* Left-Aligned Metadata & Controls */}
-      <div className="relative z-10 max-w-[580px] flex flex-col gap-3">
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={movie.id}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.24, ease: 'easeOut' }}
+          className="relative z-10 max-w-[580px] flex flex-col gap-3"
+        >
         <div className="flex items-center gap-3">
           <ProviderLogo provider={movie.provider} size="md" />
           <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#F0EA75]">
@@ -138,7 +154,7 @@ export const HeroPreview: React.FC<HeroPreviewProps> = ({
                 onClick={() => onWatch(movie)}
                 className="pl-4 pr-3 rounded-r-none"
               >
-                <TelevisionSimple size={17} weight="bold" />
+                <Tv size={17} strokeWidth={2} />
                 <span>WATCH</span>
               </Button>
 
@@ -151,7 +167,7 @@ export const HeroPreview: React.FC<HeroPreviewProps> = ({
                     title={`Playback Device: ${selectedDevice}`}
                     className="px-2 border-l-0 rounded-l-none text-[#C8D0E0]"
                   >
-                    <CaretDown size={13} weight="bold" />
+                    <ChevronDown size={14} strokeWidth={2} />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
@@ -180,9 +196,9 @@ export const HeroPreview: React.FC<HeroPreviewProps> = ({
               className="px-4"
             >
               {movie.inMyList ? (
-                <Check size={16} weight="bold" />
+                <Check size={16} strokeWidth={2.2} />
               ) : (
-                <UserPlus size={16} weight="bold" />
+                <UserPlus size={16} strokeWidth={2} />
               )}
               <span>{movie.inMyList ? 'IN LIST' : 'MY LIST'}</span>
             </Button>
@@ -194,7 +210,7 @@ export const HeroPreview: React.FC<HeroPreviewProps> = ({
                 onClick={() => onOpenEpisodes(movie)}
                 className="h-[42px] px-4"
               >
-                <ListBullets size={16} weight="bold" />
+                <List size={16} strokeWidth={2} />
                 <span>EPISODES</span>
               </Button>
             )}
@@ -215,7 +231,8 @@ export const HeroPreview: React.FC<HeroPreviewProps> = ({
                 >
                   <Star
                     size={15}
-                    weight={star <= displayedStars ? 'fill' : 'regular'}
+                    strokeWidth={1.75}
+                    fill={star <= displayedStars ? 'currentColor' : 'none'}
                     className={
                       star <= displayedStars ? 'text-[#F0EA75]' : 'text-[#87899D]'
                     }
@@ -225,7 +242,8 @@ export const HeroPreview: React.FC<HeroPreviewProps> = ({
             </div>
           </div>
         )}
-      </div>
+        </motion.div>
+      </AnimatePresence>
     </section>
   );
 };

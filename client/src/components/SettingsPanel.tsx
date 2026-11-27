@@ -5,9 +5,9 @@ import {
   Star,
   X,
   Globe,
-  SignIn,
-  SignOut,
-} from '@phosphor-icons/react';
+  LogIn,
+  LogOut,
+} from 'lucide-react';
 import { Link } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,7 +34,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           CABIN SYSTEM & RECOMMENDATION ENGINE
         </h1>
         <Button type="button" variant="secondary" size="sm" onClick={onClose}>
-          <X size={14} weight="bold" />
+          <X size={14} strokeWidth={2.2} />
           <span>BACK TO HOME</span>
         </Button>
       </div>
@@ -99,7 +99,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   onClick={logout}
                   className="w-full"
                 >
-                  <SignOut size={14} weight="bold" />
+                  <LogOut size={14} strokeWidth={2.2} />
                   <span>SIGN OUT</span>
                 </Button>
               ) : (
@@ -111,7 +111,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   className="w-full"
                 >
                   <Link to="/login">
-                    <SignIn size={14} weight="bold" />
+                    <LogIn size={14} strokeWidth={2.2} />
                     <span>SIGN IN / REGISTER ACCOUNT</span>
                   </Link>
                 </Button>
@@ -230,7 +230,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     {r.movieTitle}
                   </span>
                   <span className="inline-flex items-center gap-1 text-[12px] font-bold text-[#F0EA75] shrink-0">
-                    <Star size={13} weight="fill" />
+                    <Star size={13} fill="currentColor" strokeWidth={1.75} />
                     {r.rating}
                   </span>
                 </div>
