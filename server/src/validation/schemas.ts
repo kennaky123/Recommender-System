@@ -14,6 +14,23 @@ function emptyToUndefined(value: unknown): unknown {
   return value;
 }
 
+function parseEnvBoolean(value: unknown): unknown {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === '') return undefined;
+    if (normalized === 'true' || normalized === '1' || normalized === 'yes') {
+      return true;
+    }
+    if (normalized === 'false' || normalized === '0' || normalized === 'no') {
+      return false;
+    }
+    return value;
+  }
+  return value;
+}
+
 function optionalPositiveInt(defaultVal: number, maxVal?: number) {
   let numSchema = z.coerce.number().int().positive();
   if (maxVal !== undefined) {
@@ -58,6 +75,14 @@ export const catalogCategorySchema = z.enum(['all', 'films', 'shows']);
 export const mediaTypeFilterSchema = z.enum(['all', 'movie', 'tv']);
 export const catalogSortSchema = z.enum(['popular', 'newest', 'title']);
 export const catalogSourceSchema = z.enum(['auto', 'postgres', 'tmdb']);
+export const interleavingPlacementSchema = z.enum([
+  'home_hero',
+  'home_for_you',
+  'home_because_watched',
+  'home_hidden_gems',
+  'detail_similar',
+  'discover_critique',
+]);
 
 /**
  * Runtime environment schema validated during AppConfig initialization.
@@ -89,6 +114,14 @@ export const envSchema = z.object({
     emptyToUndefined,
     z.string().trim().min(1).default('7d')
   ),
+  INTERNAL_API_TOKEN: optionalTrimmedString('spacex_internal_dev_token'),
+  INTERLEAVING_ENABLED: z.preprocess(parseEnvBoolean, z.boolean().default(false)),
+  INTERLEAVING_PLACEMENT: optionalEnum(
+    interleavingPlacementSchema,
+    'home_for_you'
+  ),
+  INTERLEAVING_ALGO_A: optionalTrimmedString('switching_hybrid_mmr'),
+  INTERLEAVING_ALGO_B: optionalTrimmedString('funk_svd'),
 });
 
 export const registerBodySchema = z.object({

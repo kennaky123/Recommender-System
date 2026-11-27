@@ -21,8 +21,29 @@ export interface IAuthConfig {
   readonly jwtExpiresIn: string;
 }
 
+export type InterleavingPlacement =
+  | 'home_hero'
+  | 'home_for_you'
+  | 'home_because_watched'
+  | 'home_hidden_gems'
+  | 'detail_similar'
+  | 'discover_critique';
+
+export interface IInternalAuthConfig {
+  readonly internalApiToken: string;
+}
+
+export interface IInterleavingConfig {
+  readonly interleavingEnabled: boolean;
+  readonly interleavingPlacement: InterleavingPlacement;
+  readonly interleavingAlgoA: string;
+  readonly interleavingAlgoB: string;
+}
+
 export interface IAppConfig
   extends IServerConfig,
     IDatabaseConfig,
     ITmdbConfig,
-    IAuthConfig {}
+    IAuthConfig,
+    IInternalAuthConfig,
+    IInterleavingConfig {}
