@@ -12,6 +12,8 @@ export class AppConfig implements IAppConfig {
   public readonly databaseUrl: string;
   public readonly tmdbApiKey: string;
   public readonly tmdbAccessToken: string;
+  public readonly jwtSecret: string;
+  public readonly jwtExpiresIn: string;
 
   private constructor() {
     const envPath = path.resolve(__dirname, '..', '..', '.env');
@@ -23,6 +25,10 @@ export class AppConfig implements IAppConfig {
       'postgresql://spacex:spacex_secret@localhost:5433/spacex_vod';
     this.tmdbApiKey = (process.env.TMDB_API_KEY || '').trim();
     this.tmdbAccessToken = (process.env.TMDB_ACCESS_TOKEN || '').trim();
+    this.jwtSecret =
+      (process.env.JWT_SECRET || '').trim() ||
+      'spacex_vod_dev_jwt_secret_change_me';
+    this.jwtExpiresIn = (process.env.JWT_EXPIRES_IN || '').trim() || '7d';
   }
 
   public static getInstance(): AppConfig {

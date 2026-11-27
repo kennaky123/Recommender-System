@@ -14,17 +14,20 @@ import { vodQueryKeys } from '@/lib/queryClient';
 import { CatalogSort, MoodTag, NavCategory } from '@/types';
 
 export function useRecommendationsQuery(
+  userId: number,
   mood: MoodTag,
   category: NavCategory
 ) {
   return useQuery({
-    queryKey: vodQueryKeys.recommendations(mood, category),
-    queryFn: ({ signal }) => fetchRecommendations(mood, category, signal),
+    queryKey: vodQueryKeys.recommendations(userId, mood, category),
+    queryFn: ({ signal }) =>
+      fetchRecommendations(userId, mood, category, signal),
     placeholderData: keepPreviousData,
   });
 }
 
 export function useFullCatalogQuery(params: {
+  userId: number;
   category: 'all' | 'films' | 'shows';
   genre: string;
   mood: MoodTag;
@@ -41,6 +44,7 @@ export function useFullCatalogQuery(params: {
 }
 
 export function useSearchCatalogInfiniteQuery(params: {
+  userId: number;
   q: string;
   genre: string;
   mediaType: 'all' | 'movie' | 'tv';
@@ -51,6 +55,7 @@ export function useSearchCatalogInfiniteQuery(params: {
     queryFn: ({ pageParam, signal }) =>
       searchCatalog(
         params.q,
+        params.userId,
         'all',
         params.genre,
         params.mediaType,
@@ -71,9 +76,9 @@ export function useMovieDetailQuery(movieId: number, enabled = true) {
   });
 }
 
-export function useUserProfileQuery() {
+export function useUserProfileQuery(userId: number) {
   return useQuery({
-    queryKey: vodQueryKeys.userProfile(),
-    queryFn: ({ signal }) => fetchUserProfile(signal),
+    queryKey: vodQueryKeys.userProfile(userId),
+    queryFn: ({ signal }) => fetchUserProfile(userId, signal),
   });
 }

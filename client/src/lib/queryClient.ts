@@ -14,10 +14,12 @@ export const queryClient = new QueryClient({
 
 export const vodQueryKeys = {
   all: ['vod'] as const,
-  recommendations: (mood: MoodTag, category: NavCategory) =>
-    [...vodQueryKeys.all, 'recommendations', { mood, category }] as const,
+  authMe: () => [...vodQueryKeys.all, 'auth', 'me'] as const,
+  recommendations: (userId: number, mood: MoodTag, category: NavCategory) =>
+    [...vodQueryKeys.all, 'recommendations', { userId, mood, category }] as const,
   recommendationsRoot: () => [...vodQueryKeys.all, 'recommendations'] as const,
   catalog: (params: {
+    userId: number;
     category: 'all' | 'films' | 'shows';
     genre: string;
     mood: MoodTag;
@@ -26,12 +28,14 @@ export const vodQueryKeys = {
     source: 'auto' | 'tmdb';
   }) => [...vodQueryKeys.all, 'catalog', params] as const,
   search: (params: {
+    userId: number;
     q: string;
     genre: string;
     mediaType: 'all' | 'movie' | 'tv';
   }) => [...vodQueryKeys.all, 'search', params] as const,
   movie: (movieId: number) => [...vodQueryKeys.all, 'movie', movieId] as const,
-  similar: (movieId: number) =>
-    [...vodQueryKeys.all, 'similar', movieId] as const,
-  userProfile: () => [...vodQueryKeys.all, 'userProfile'] as const,
+  similar: (movieId: number, userId: number) =>
+    [...vodQueryKeys.all, 'similar', { movieId, userId }] as const,
+  userProfile: (userId: number) =>
+    [...vodQueryKeys.all, 'userProfile', userId] as const,
 };

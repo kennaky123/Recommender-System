@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/context/AuthContext';
 import { useFullCatalogQuery } from '@/hooks/useVodQueries';
 import { CatalogSort, MoodTag, RecommendedMovie } from '@/types';
 import { ProviderLogo } from './ProviderLogo';
@@ -66,7 +67,9 @@ export const FullCatalogGrid: React.FC<FullCatalogGridProps> = ({
   const source = controlledSource ?? localSource;
   const page = controlledPage ?? localPage;
 
+  const { activeUserId } = useAuth();
   const { data, isPending, isFetching } = useFullCatalogQuery({
+    userId: activeUserId,
     category,
     genre,
     mood: activeMood,

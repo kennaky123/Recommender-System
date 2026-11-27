@@ -1,9 +1,15 @@
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL,
+  email TEXT UNIQUE,
+  password_hash TEXT,
   avatar_url TEXT DEFAULT '/backdrops/claude-patterson.jpg',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique ON users (email) WHERE email IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS movies (
   id SERIAL PRIMARY KEY,

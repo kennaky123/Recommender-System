@@ -25,13 +25,17 @@ export interface VodRowConfig {
 /**
  * Single Responsibility hook powered by TanStack Query + Axios mutations.
  */
-export function useVodFeed(activeMood: MoodTag, activeCategory: NavCategory) {
+export function useVodFeed(
+  userId: number,
+  activeMood: MoodTag,
+  activeCategory: NavCategory
+) {
   const queryClient = useQueryClient();
   const {
     data: feed = null,
     isLoading,
     error: queryError,
-  } = useRecommendationsQuery(activeMood, activeCategory);
+  } = useRecommendationsQuery(userId, activeMood, activeCategory);
 
   const [focusedMovie, setFocusedMovie] = useState<RecommendedMovie | null>(null);
   const [actionsVisible, setActionsVisible] = useState(true);
@@ -60,17 +64,17 @@ export function useVodFeed(activeMood: MoodTag, activeCategory: NavCategory) {
   const syncFeedCache = useCallback(
     (nextFeed: RecommendationFeed) => {
       queryClient.setQueryData(
-        vodQueryKeys.recommendations(activeMood, activeCategory),
+        vodQueryKeys.recommendations(userId, activeMood, activeCategory),
         nextFeed
       );
       queryClient.invalidateQueries({
         queryKey: vodQueryKeys.recommendationsRoot(),
       });
       queryClient.invalidateQueries({
-        queryKey: vodQueryKeys.userProfile(),
+        queryKey: vodQueryKeys.userProfile(userId),
       });
     },
-    [activeCategory, activeMood, queryClient]
+    [activeCategory, activeMood, queryClient, userId]
   );
 
   const watchlistMutation = useMutation({
@@ -81,7 +85,7 @@ export function useVodFeed(activeMood: MoodTag, activeCategory: NavCategory) {
         setFocusedMovie(ensured);
         targetId = ensured.id;
       }
-      const res = await toggleMyList(targetId);
+      const res = await toggleMyList(userId, targetId);
       return { targetId, ...res };
     },
     onSuccess: ({ targetId, inMyList, feed: nextFeed }) => {
@@ -110,7 +114,7 @@ export function useVodFeed(activeMood: MoodTag, activeCategory: NavCategory) {
         setFocusedMovie(ensured);
         targetId = ensured.id;
       }
-      const res = await submitRating(targetId, rating);
+      const res = await submitRating(userId, targetId, rating);
       return { targetId, rating, feed: res.feed };
     },
     onSuccess: ({ targetId, rating, feed: nextFeed }) => {
@@ -135,6 +139,7 @@ export function useVodFeed(activeMood: MoodTag, activeCategory: NavCategory) {
     }) => {
       if (vars.movieId < 0) return null;
       return saveWatchProgress(
+        userId,
         vars.movieId,
         vars.progressSeconds,
         vars.durationSeconds,
@@ -149,7 +154,6 @@ export function useVodFeed(activeMood: MoodTag, activeCategory: NavCategory) {
     },
   });
 
-  // Dashboard (HOME) stays capped at 8 items per horizontal row
   const activeRows = useMemo<VodRowConfig[]>(() => {
     if (!feed) return [];
     const rows: VodRowConfig[] = [

@@ -28,6 +28,18 @@ export type PlaybackDevice =
   | 'CREW TABLET'
   | 'SPACE-X VR HEADSET';
 
+export interface AuthUser {
+  id: number;
+  name: string;
+  email: string;
+  avatarUrl: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  user: AuthUser;
+}
+
 export interface Episode {
   season: number;
   episode: number;
@@ -115,6 +127,7 @@ export interface UserProfileResponse {
   profile: {
     id: number;
     name: string;
+    email?: string | null;
     avatarUrl: string;
   };
   storageMode: 'postgres' | 'memory-fallback';

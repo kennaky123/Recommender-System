@@ -1,7 +1,17 @@
 import React from 'react';
-import { Database, Cpu, Star, X, Globe } from '@phosphor-icons/react';
+import {
+  Database,
+  Cpu,
+  Star,
+  X,
+  Globe,
+  SignIn,
+  SignOut,
+} from '@phosphor-icons/react';
+import { Link } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/context/AuthContext';
 import { useUserProfileQuery } from '@/hooks/useVodQueries';
 import { RecommendationFeed } from '@/types';
 
@@ -14,7 +24,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   feed,
   onClose,
 }) => {
-  const { data: profileData } = useUserProfileQuery();
+  const { activeUserId, isAuthenticated, logout } = useAuth();
+  const { data: profileData } = useUserProfileQuery(activeUserId);
 
   return (
     <div className="relative z-10 pl-20 lg:pl-24 pr-8 py-8 min-h-[calc(100dvh-66px)]">
@@ -34,16 +45,19 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           <CardContent className="pt-5">
             <div className="flex items-center gap-4 mb-4">
               <img
-                src="/backdrops/claude-patterson.jpg"
-                alt="Claude Patterson"
+                src={
+                  profileData?.profile.avatarUrl ??
+                  '/backdrops/claude-patterson.jpg'
+                }
+                alt={profileData?.profile.name ?? 'Passenger'}
                 className="w-12 h-12 rounded-full object-cover grayscale border border-white/30"
               />
-              <div>
-                <div className="text-[15px] font-bold uppercase tracking-wider text-white">
+              <div className="min-w-0">
+                <div className="text-[15px] font-bold uppercase tracking-wider text-white truncate">
                   {profileData?.profile.name ?? 'CLAUDE PATTERSON'}
                 </div>
-                <div className="text-[11px] uppercase tracking-wider text-[#87899D]">
-                  NFC CABIN PROFILE • USER #1
+                <div className="text-[11px] uppercase tracking-wider text-[#87899D] truncate">
+                  {profileData?.profile.email ?? `CABIN PROFILE • USER #${activeUserId}`}
                 </div>
               </div>
             </div>
@@ -74,6 +88,34 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   WATCHED
                 </div>
               </div>
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-[#373B47]">
+              {isAuthenticated ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={logout}
+                  className="w-full"
+                >
+                  <SignOut size={14} weight="bold" />
+                  <span>SIGN OUT</span>
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="backlit"
+                  size="sm"
+                  asChild
+                  className="w-full"
+                >
+                  <Link to="/login">
+                    <SignIn size={14} weight="bold" />
+                    <span>SIGN IN / REGISTER ACCOUNT</span>
+                  </Link>
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>

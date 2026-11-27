@@ -8,6 +8,7 @@ import {
 import { MediaEntity } from '../domain/MediaEntity';
 import { MediaFactory } from '../domain/MediaFactory';
 import {
+  AuthUserRecord,
   CatalogSort,
   MovieDTO,
   PaginatedCatalogResult,
@@ -18,6 +19,7 @@ import {
   WatchProgressRecord,
 } from '../domain/types';
 import { RatingValue, WatchProgressValue } from '../domain/ValueObjects';
+import { ScryptPasswordHasher } from '../services/auth/ScryptPasswordHasher';
 import { IMediaRepository } from './IMediaRepository';
 
 /**
@@ -25,7 +27,7 @@ import { IMediaRepository } from './IMediaRepository';
  */
 export class InMemoryMediaRepository implements IMediaRepository {
   private readonly mediaList: MediaEntity[];
-  private readonly users: UserProfile[];
+  private readonly authUsers: AuthUserRecord[];
   private readonly ratings: RatingRecord[];
   private readonly watchlist = new Map<number, number[]>();
   private readonly watchHistory = new Map<number, WatchProgressRecord[]>();
@@ -34,7 +36,14 @@ export class InMemoryMediaRepository implements IMediaRepository {
     this.mediaList = SEED_MOVIES.map((dto) =>
       MediaFactory.fromDTO(structuredClone(dto))
     );
-    this.users = structuredClone(SEED_USERS);
+    const hasher = new ScryptPasswordHasher();
+    this.authUsers = SEED_USERS.map((u) => ({
+      id: u.id,
+      name: u.name,
+      email: u.id === 1 ? 'claude@spacex.vod' : `crew${u.id}@spacex.vod`,
+      passwordHash: u.id === 1 ? hasher.hash('SpaceX@2026') : '',
+      avatarUrl: u.avatarUrl,
+    }));
     this.ratings = structuredClone(SEED_RATINGS);
 
     for (const w of SEED_WATCHLIST) {
@@ -255,6 +264,41 @@ export class InMemoryMediaRepository implements IMediaRepository {
   }
 
   public async getUserProfile(userId: number): Promise<UserProfile> {
-    return this.users.find((u) => u.id === userId) ?? this.users[0];
+    const u = this.authUsers.find((x) => x.id === userId) ?? this.authUsers[0];
+    return {
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      avatarUrl: u.avatarUrl,
+    };
+  }
+
+  public async findUserByEmail(email: string): Promise<AuthUserRecord | null> {
+    const lower = email.trim().toLowerCase();
+    return (
+      this.authUsers.find((u) => u.email.toLowerCase() === lower) ?? null
+    );
+  }
+
+  public async findUserById(id: number): Promise<AuthUserRecord | null> {
+    return this.authUsers.find((u) => u.id === id) ?? null;
+  }
+
+  public async createAuthUser(input: {
+    name: string;
+    email: string;
+    passwordHash: string;
+    avatarUrl: string;
+  }): Promise<AuthUserRecord> {
+    const nextId = Math.max(0, ...this.authUsers.map((u) => u.id)) + 1;
+    const created: AuthUserRecord = {
+      id: nextId,
+      name: input.name,
+      email: input.email,
+      passwordHash: input.passwordHash,
+      avatarUrl: input.avatarUrl,
+    };
+    this.authUsers.push(created);
+    return created;
   }
 }

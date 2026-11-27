@@ -9,11 +9,14 @@ import { LeftSidebar } from './components/LeftSidebar';
 import { MobileRemoteDrawer } from './components/MobileRemoteDrawer';
 import { TelemetryHeader } from './components/TelemetryHeader';
 import { VidLinkPlayerModal } from './components/VidLinkPlayerModal';
+import { AuthProvider } from './context/AuthContext';
 import { useVodShell, VodShellProvider } from './context/VodShellContext';
 import { CatalogPage } from './pages/CatalogPage';
 import { ChannelPage } from './pages/ChannelPage';
 import { HomePage } from './pages/HomePage';
+import { LoginPage } from './pages/LoginPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { RegisterPage } from './pages/RegisterPage';
 import { SearchPage } from './pages/SearchPage';
 import { SeriesDetailPage } from './pages/SeriesDetailPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -125,9 +128,11 @@ const ShellFrame: React.FC = () => {
 };
 
 const RootLayout: React.FC = () => (
-  <VodShellProvider>
-    <ShellFrame />
-  </VodShellProvider>
+  <AuthProvider>
+    <VodShellProvider>
+      <ShellFrame />
+    </VodShellProvider>
+  </AuthProvider>
 );
 
 const rootRoute = createRootRoute({
@@ -208,6 +213,18 @@ const settingsRoute = createRoute({
   component: SettingsPage,
 });
 
+const loginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/login',
+  component: LoginPage,
+});
+
+const registerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/register',
+  component: RegisterPage,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   filmsRoute,
@@ -217,6 +234,8 @@ const routeTree = rootRoute.addChildren([
   liveRoute,
   audioRoute,
   settingsRoute,
+  loginRoute,
+  registerRoute,
 ]);
 
 export const router = createRouter({

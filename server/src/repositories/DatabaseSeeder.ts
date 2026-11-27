@@ -7,6 +7,7 @@ import {
   SEED_WATCHLIST,
   SEED_WATCH_HISTORY,
 } from '../db/seedData';
+import { ScryptPasswordHasher } from '../services/auth/ScryptPasswordHasher';
 import { DatabaseConnection } from './DatabaseConnection';
 
 /**
@@ -36,12 +37,40 @@ export class DatabaseSeeder {
   }
 
   public async seedDefaultsIfEmpty(): Promise<void> {
+    await this.ensureDemoAuthUser();
     const { rows } = await this.db.pool.query(
       'SELECT COUNT(*)::int AS cnt FROM movies'
     );
     if (Number(rows[0]?.cnt ?? 0) === 0) {
       await this.seedDefaults();
     }
+  }
+
+  public async ensureDemoAuthUser(): Promise<void> {
+    const demoCheck = await this.db.pool.query(
+      'SELECT id, email, password_hash FROM users WHERE id = 1'
+    );
+    const hasher = new ScryptPasswordHasher();
+    const demoHash = hasher.hash('SpaceX@2026');
+    if (demoCheck.rows.length === 0) {
+      await this.db.pool.query(
+        `INSERT INTO users (id, name, email, password_hash, avatar_url)
+         VALUES (1, 'CLAUDE PATTERSON', 'claude@spacex.vod', $1, '/backdrops/claude-patterson.jpg')
+         ON CONFLICT (id) DO NOTHING`,
+        [demoHash]
+      );
+    } else if (!demoCheck.rows[0].email || !demoCheck.rows[0].password_hash) {
+      await this.db.pool.query(
+        `UPDATE users
+         SET email = COALESCE(email, 'claude@spacex.vod'),
+             password_hash = COALESCE(password_hash, $1)
+         WHERE id = 1`,
+        [demoHash]
+      );
+    }
+    await this.db.pool.query(
+      `SELECT setval(pg_get_serial_sequence('users', 'id'), COALESCE((SELECT MAX(id) FROM users), 1))`
+    );
   }
 
   public async seedDefaults(): Promise<void> {

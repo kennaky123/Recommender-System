@@ -3,6 +3,7 @@ import express, { Express } from 'express';
 import { AppConfig } from '../config/AppConfig';
 import { IAppConfig } from '../config/IConfig';
 import { BaseController } from '../controllers/BaseController';
+import { AuthController } from '../controllers/AuthController';
 import { HealthController } from '../controllers/HealthController';
 import { MovieController } from '../controllers/MovieController';
 import { RecommendationController } from '../controllers/RecommendationController';
@@ -12,6 +13,9 @@ import { DatabaseSeeder } from '../repositories/DatabaseSeeder';
 import { IMediaRepository } from '../repositories/IMediaRepository';
 import { InMemoryMediaRepository } from '../repositories/InMemoryMediaRepository';
 import { PostgresMediaRepository } from '../repositories/PostgresMediaRepository';
+import { AuthService } from '../services/auth/AuthService';
+import { JwtTokenProvider } from '../services/auth/JwtTokenProvider';
+import { ScryptPasswordHasher } from '../services/auth/ScryptPasswordHasher';
 import { CatalogService } from '../services/CatalogService';
 import { CollaborativeStrategy } from '../services/recommendation/CollaborativeStrategy';
 import { ContentBasedStrategy } from '../services/recommendation/ContentBasedStrategy';
@@ -110,8 +114,15 @@ export class ServerApplication {
       cacheInvalidator: recommender,
     });
 
+    const authService = new AuthService({
+      userRepo: repository,
+      passwordHasher: new ScryptPasswordHasher(),
+      tokenProvider: new JwtTokenProvider(this.config),
+    });
+
     this.mountControllers([
       new HealthController(catalogService),
+      new AuthController(authService),
       new MovieController(catalogService),
       new RecommendationController(recommender),
       new UserController(userService),

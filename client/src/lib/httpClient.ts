@@ -1,11 +1,21 @@
 import axios, { AxiosError } from 'axios';
 
+export const AUTH_TOKEN_KEY = 'spacex_vod_token';
+
 export const httpClient = axios.create({
   baseURL: '/api',
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },
+});
+
+httpClient.interceptors.request.use((config) => {
+  const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 httpClient.interceptors.response.use(

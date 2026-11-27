@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { DeviceMobileCamera, Database } from '@phosphor-icons/react';
+import {
+  DeviceMobileCamera,
+  Database,
+  SignIn,
+  SignOut,
+} from '@phosphor-icons/react';
+import { Link } from '@tanstack/react-router';
+import { useAuth } from '@/context/AuthContext';
 
 interface TelemetryHeaderProps {
   dimBrand?: boolean;
@@ -25,7 +32,7 @@ export const TelemetryHeader: React.FC<TelemetryHeaderProps> = ({
   remoteOpen,
   onToggleRemote,
 }) => {
-  // Initial Behance reference countdown: T-2:07:24:51 -> 2*86400 + 7*3600 + 24*60 + 51 = 199491s
+  const { user, isAuthenticated, logout } = useAuth();
   const [countdown, setCountdown] = useState(199491);
   const [clock, setClock] = useState(() => {
     const now = new Date();
@@ -50,7 +57,8 @@ export const TelemetryHeader: React.FC<TelemetryHeaderProps> = ({
   return (
     <header className="relative z-30 w-full border-b border-[#373B47] bg-gradient-to-b from-[#020204] to-[#060911]/95 px-6 lg:px-10 h-[66px] flex items-center justify-between gap-4 select-none">
       {/* Left: Stretched SPACEX wordmark + Mission Clock */}
-      <div
+      <Link
+        to="/"
         className={`flex items-center gap-5 transition-opacity duration-200 ${
           dimBrand ? 'opacity-40' : 'opacity-100'
         }`}
@@ -65,7 +73,6 @@ export const TelemetryHeader: React.FC<TelemetryHeaderProps> = ({
           <path d="M74.4 4.5h5.7l11 19.3h-5.3l-2.3-4.2H71.1l-2.3 4.2h-5.1L74.4 4.5zm7.2 11.9l-4.3-7.9-4.3 7.9h8.6z" />
           <path d="M97 14.2c0-6.2 4.3-10.1 11.6-10.1h10.7v3.4h-10.3c-4.4 0-6.9 2.4-6.9 6.6 0 4.3 2.5 6.6 6.9 6.6h10.3v3.3h-10.7C101.3 24 97 20.2 97 14.2z" />
           <path d="M126.8 4.5h19.6v3.3h-14.7v4.7h12.6v3.2h-12.6v4.8h15.1v3.3h-20V4.5z" />
-          {/* Signature Sweeping Parabolic X Arc */}
           <path d="M153.2 4.5h6.1l10.6 8.3-4.2 3.1-12.5-11.4z" />
           <path d="M174.1 15.8l12.2 8h-6.3l-9.9-6.6 4-1.4z" />
           <path d="M153.5 23.8C166.5 13.7 183 6.1 215 1.8c-24.2 4.9-40.9 12.1-54.8 22h-6.7z" />
@@ -74,10 +81,10 @@ export const TelemetryHeader: React.FC<TelemetryHeaderProps> = ({
         <span className="text-[16px] font-bold tracking-wider text-white tabular-nums">
           {clock}
         </span>
-      </div>
+      </Link>
 
       {/* Center Telemetry Metrics */}
-      <div className="hidden md:flex items-center gap-6 lg:gap-9 xl:gap-12">
+      <div className="hidden md:flex items-center gap-6 lg:gap-9 xl:gap-10">
         <div className="flex flex-col">
           <span className="text-[9px] uppercase tracking-[0.14em] text-[#87899D]">
             ACTIVE PHASE
@@ -97,9 +104,9 @@ export const TelemetryHeader: React.FC<TelemetryHeaderProps> = ({
         </div>
       </div>
 
-      {/* Right Orbital Telemetry Cluster + Companion Remote Toggle */}
-      <div className="flex items-center gap-5 lg:gap-7">
-        <div className="hidden xl:flex items-center gap-6">
+      {/* Right Orbital Telemetry Cluster + Auth + Companion Remote */}
+      <div className="flex items-center gap-4 lg:gap-6">
+        <div className="hidden 2xl:flex items-center gap-5">
           {[
             { label: 'INERTIAL VELOCITY', value: '7.69', unit: 'km/s' },
             { label: 'ALTITUDE', value: '393.3', unit: 'km' },
@@ -121,19 +128,46 @@ export const TelemetryHeader: React.FC<TelemetryHeaderProps> = ({
           ))}
         </div>
 
-        {/* Subtle DB mode + Companion Remote trigger */}
-        <div className="flex items-center gap-2.5 pl-2 border-l border-[#373B47]/60">
+        <div className="flex items-center gap-2 pl-2 border-l border-[#373B47]/60">
           <span
             title={
               storageMode === 'postgres'
                 ? 'PostgreSQL Connected'
-                : 'In-Memory Demo Mode (Start PostgreSQL to persist)'
+                : 'In-Memory Demo Mode'
             }
             className="hidden sm:inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[#B8C0D4] px-2 py-1 border border-[#373B47] rounded-[2px]"
           >
-            <Database size={12} weight="bold" className={storageMode === 'postgres' ? 'text-[#F0EA75]' : 'text-[#87899D]'} />
+            <Database
+              size={12}
+              weight="bold"
+              className={
+                storageMode === 'postgres' ? 'text-[#F0EA75]' : 'text-[#87899D]'
+              }
+            />
             <span>{storageMode === 'postgres' ? 'PGSQL' : 'DEMO'}</span>
           </span>
+
+          {isAuthenticated && user ? (
+            <button
+              type="button"
+              onClick={logout}
+              title={`Signed in as ${user.name} (${user.email}) — Click to Sign Out`}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[3px] text-[11px] font-bold uppercase tracking-wider border border-[#F0EA75]/60 text-[#F0EA75] hover:bg-[#F0EA75]/10 cursor-pointer"
+            >
+              <SignOut size={14} weight="bold" />
+              <span className="hidden md:inline max-w-[110px] truncate">
+                {user.name}
+              </span>
+            </button>
+          ) : (
+            <Link
+              to="/login"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[3px] text-[11px] font-bold uppercase tracking-wider border border-[#373B47] text-[#C8D0E0] hover:border-white hover:text-white"
+            >
+              <SignIn size={14} weight="bold" />
+              <span>SIGN IN</span>
+            </Link>
+          )}
 
           <button
             type="button"
@@ -145,7 +179,10 @@ export const TelemetryHeader: React.FC<TelemetryHeaderProps> = ({
                 : 'border border-[#373B47] text-[#C8D0E0] hover:border-white hover:text-white'
             }`}
           >
-            <DeviceMobileCamera size={14} weight={remoteOpen ? 'fill' : 'regular'} />
+            <DeviceMobileCamera
+              size={14}
+              weight={remoteOpen ? 'fill' : 'regular'}
+            />
             <span className="hidden sm:inline">REMOTE</span>
           </button>
         </div>

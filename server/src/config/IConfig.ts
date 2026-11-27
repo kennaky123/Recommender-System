@@ -16,7 +16,13 @@ export interface ITmdbConfig {
   isTmdbConfigured(): boolean;
 }
 
+export interface IAuthConfig {
+  readonly jwtSecret: string;
+  readonly jwtExpiresIn: string;
+}
+
 export interface IAppConfig
   extends IServerConfig,
     IDatabaseConfig,
-    ITmdbConfig {}
+    ITmdbConfig,
+    IAuthConfig {}

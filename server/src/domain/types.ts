@@ -51,7 +51,28 @@ export interface MovieDTO {
 export interface UserProfile {
   id: number;
   name: string;
+  email?: string | null;
   avatarUrl: string;
+}
+
+export interface AuthUserRecord {
+  id: number;
+  name: string;
+  email: string;
+  passwordHash: string;
+  avatarUrl: string;
+}
+
+export interface PublicUserDTO {
+  id: number;
+  name: string;
+  email: string;
+  avatarUrl: string;
+}
+
+export interface AuthResponseDTO {
+  token: string;
+  user: PublicUserDTO;
 }
 
 export interface RatingRecord {

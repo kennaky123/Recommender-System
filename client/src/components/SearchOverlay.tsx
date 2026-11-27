@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/context/AuthContext';
 import { useSearchCatalogInfiniteQuery } from '@/hooks/useVodQueries';
 import { ensureMovieInDb } from '../api';
 import { RecommendedMovie } from '../types';
@@ -68,6 +69,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
     return () => window.clearTimeout(timer);
   }, [query, genre, mediaType, onFiltersChange]);
 
+  const { activeUserId } = useAuth();
   const {
     data,
     isPending,
@@ -75,6 +77,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
     hasNextPage,
     isFetchingNextPage,
   } = useSearchCatalogInfiniteQuery({
+    userId: activeUserId,
     q: debouncedQuery,
     genre,
     mediaType,

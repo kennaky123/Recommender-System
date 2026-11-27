@@ -7,7 +7,10 @@ import {
   Broadcast,
   MusicNote,
   GearSix,
+  SignIn,
 } from '@phosphor-icons/react';
+import { Link } from '@tanstack/react-router';
+import { useAuth } from '@/context/AuthContext';
 import { NavCategory } from '../types';
 
 interface LeftSidebarProps {
@@ -15,8 +18,8 @@ interface LeftSidebarProps {
   expanded: boolean;
   onExpandChange: (expanded: boolean) => void;
   onSelectCategory: (cat: NavCategory) => void;
-  userName: string;
-  avatarUrl: string;
+  userName?: string;
+  avatarUrl?: string;
 }
 
 const MAIN_ITEMS: Array<{
@@ -40,6 +43,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   userName,
   avatarUrl,
 }) => {
+  const { user, isAuthenticated } = useAuth();
+  const displayName = user?.name ?? userName ?? 'GUEST PASSENGER';
+  const displayAvatar =
+    user?.avatarUrl ?? avatarUrl ?? '/backdrops/claude-patterson.jpg';
+
   return (
     <aside
       onMouseEnter={() => onExpandChange(true)}
@@ -59,15 +67,20 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         >
           <div className="w-9 h-9 rounded-full overflow-hidden border border-white/25 bg-[#101831] shrink-0">
             <img
-              src={avatarUrl}
-              alt={userName}
+              src={displayAvatar}
+              alt={displayName}
               className="w-full h-full object-cover grayscale"
             />
           </div>
           {expanded && (
-            <span className="text-[13px] font-bold uppercase tracking-[0.08em] text-white whitespace-nowrap">
-              {userName}
-            </span>
+            <div className="min-w-0">
+              <div className="text-[13px] font-bold uppercase tracking-[0.08em] text-white truncate">
+                {displayName}
+              </div>
+              <div className="text-[9px] uppercase tracking-wider text-[#F0EA75]">
+                {isAuthenticated ? 'AUTHENTICATED' : 'DEMO PROFILE'}
+              </div>
+            </div>
           )}
         </button>
 
@@ -104,29 +117,45 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         </nav>
       </div>
 
-      {/* Bottom Settings Icon */}
-      <button
-        type="button"
-        onClick={() => onSelectCategory('settings')}
-        className={`relative flex items-center gap-4 h-11 px-2.5 transition-all cursor-pointer focus:outline-none ${
-          expanded && activeCategory === 'settings'
-            ? 'spacex-backlit-btn text-[#0F1429] font-bold'
-            : activeCategory === 'settings'
-            ? 'text-white font-bold'
-            : 'text-white/55 hover:text-white'
-        }`}
-      >
-        <GearSix
-          size={20}
-          weight={activeCategory === 'settings' ? 'fill' : 'regular'}
-          className="shrink-0"
-        />
-        {expanded && (
-          <span className="text-[13px] font-bold uppercase tracking-[0.08em] whitespace-nowrap">
-            SETTINGS
-          </span>
+      {/* Bottom Auth / Settings */}
+      <div className="flex flex-col gap-2">
+        {!isAuthenticated && (
+          <Link
+            to="/login"
+            className="relative flex items-center gap-4 h-11 px-2.5 text-[#F0EA75]/85 hover:text-[#F0EA75] transition-all"
+          >
+            <SignIn size={20} className="shrink-0" />
+            {expanded && (
+              <span className="text-[13px] font-bold uppercase tracking-[0.08em] whitespace-nowrap">
+                SIGN IN
+              </span>
+            )}
+          </Link>
         )}
-      </button>
+
+        <button
+          type="button"
+          onClick={() => onSelectCategory('settings')}
+          className={`relative flex items-center gap-4 h-11 px-2.5 transition-all cursor-pointer focus:outline-none ${
+            expanded && activeCategory === 'settings'
+              ? 'spacex-backlit-btn text-[#0F1429] font-bold'
+              : activeCategory === 'settings'
+              ? 'text-white font-bold'
+              : 'text-white/55 hover:text-white'
+          }`}
+        >
+          <GearSix
+            size={20}
+            weight={activeCategory === 'settings' ? 'fill' : 'regular'}
+            className="shrink-0"
+          />
+          {expanded && (
+            <span className="text-[13px] font-bold uppercase tracking-[0.08em] whitespace-nowrap">
+              SETTINGS
+            </span>
+          )}
+        </button>
+      </div>
     </aside>
   );
 };

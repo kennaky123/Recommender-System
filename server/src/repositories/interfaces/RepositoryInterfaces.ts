@@ -1,5 +1,6 @@
 import { MediaEntity } from '../../domain/MediaEntity';
 import {
+  AuthUserRecord,
   MovieDTO,
   PaginatedCatalogResult,
   RatingRecord,
@@ -62,4 +63,15 @@ export interface IWatchHistoryRepository {
 
 export interface IUserProfileRepository {
   getUserProfile(userId: number): Promise<UserProfile>;
+}
+
+export interface IAuthUserRepository {
+  findUserByEmail(email: string): Promise<AuthUserRecord | null>;
+  findUserById(id: number): Promise<AuthUserRecord | null>;
+  createAuthUser(input: {
+    name: string;
+    email: string;
+    passwordHash: string;
+    avatarUrl: string;
+  }): Promise<AuthUserRecord>;
 }

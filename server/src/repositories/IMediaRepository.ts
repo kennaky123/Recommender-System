@@ -1,4 +1,5 @@
 import {
+  IAuthUserRepository,
   IMediaCatalogRepository,
   IRatingRepository,
   IStorageStatusProvider,
@@ -18,4 +19,5 @@ export interface IMediaRepository
     IRatingRepository,
     IWatchlistRepository,
     IWatchHistoryRepository,
-    IUserProfileRepository {}
+    IUserProfileRepository,
+    IAuthUserRepository {}

@@ -3,6 +3,7 @@ import { SEED_USERS } from '../db/seedData';
 import { MediaEntity } from '../domain/MediaEntity';
 import { MediaFactory } from '../domain/MediaFactory';
 import {
+  AuthUserRecord,
   CatalogSort,
   MovieDTO,
   PaginatedCatalogResult,
@@ -415,18 +416,60 @@ export class PostgresMediaRepository implements IMediaRepository {
 
   public async getUserProfile(userId: number): Promise<UserProfile> {
     const { rows } = await this.pool.query(
-      'SELECT id, name, avatar_url FROM users WHERE id = $1',
+      'SELECT id, name, email, avatar_url FROM users WHERE id = $1',
       [userId]
     );
     if (rows.length > 0) {
       return {
         id: Number(rows[0].id),
         name: String(rows[0].name),
+        email: (rows[0].email as string | null) ?? null,
         avatarUrl: String(
           rows[0].avatar_url || '/backdrops/claude-patterson.jpg'
         ),
       };
     }
     return SEED_USERS[0];
+  }
+
+  private mapAuthRow(row: Record<string, unknown>): AuthUserRecord {
+    return {
+      id: Number(row.id),
+      name: String(row.name),
+      email: String(row.email || ''),
+      passwordHash: String(row.password_hash || ''),
+      avatarUrl: String(row.avatar_url || '/backdrops/claude-patterson.jpg'),
+    };
+  }
+
+  public async findUserByEmail(email: string): Promise<AuthUserRecord | null> {
+    const { rows } = await this.pool.query(
+      'SELECT id, name, email, password_hash, avatar_url FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1',
+      [email]
+    );
+    return rows.length > 0 ? this.mapAuthRow(rows[0]) : null;
+  }
+
+  public async findUserById(id: number): Promise<AuthUserRecord | null> {
+    const { rows } = await this.pool.query(
+      'SELECT id, name, email, password_hash, avatar_url FROM users WHERE id = $1 LIMIT 1',
+      [id]
+    );
+    return rows.length > 0 ? this.mapAuthRow(rows[0]) : null;
+  }
+
+  public async createAuthUser(input: {
+    name: string;
+    email: string;
+    passwordHash: string;
+    avatarUrl: string;
+  }): Promise<AuthUserRecord> {
+    const { rows } = await this.pool.query(
+      `INSERT INTO users (name, email, password_hash, avatar_url)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, name, email, password_hash, avatar_url`,
+      [input.name, input.email, input.passwordHash, input.avatarUrl]
+    );
+    return this.mapAuthRow(rows[0]);
   }
 }

@@ -1,10 +1,12 @@
 import { MediaEntity } from '../../domain/MediaEntity';
 import {
+  AuthResponseDTO,
   CatalogSort,
   MoodTag,
   MovieDTO,
   NavCategory,
   PaginatedCatalogResult,
+  PublicUserDTO,
   RecommendationFeedDTO,
   RecommendedMovieDTO,
   WatchProgressRecord,
@@ -113,4 +115,30 @@ export interface IUserActivityService {
     season?: number,
     episode?: number
   ): Promise<{ record: WatchProgressRecord; feed: RecommendationFeedDTO }>;
+}
+
+export interface IPasswordHasher {
+  hash(plainPassword: string): string;
+  verify(plainPassword: string, storedHash: string): boolean;
+}
+
+export interface AuthTokenPayload {
+  userId: number;
+  email: string;
+  name: string;
+}
+
+export interface ITokenProvider {
+  sign(payload: AuthTokenPayload): string;
+  verify(token: string): AuthTokenPayload;
+}
+
+export interface IAuthService {
+  register(input: {
+    name: string;
+    email: string;
+    password: string;
+  }): Promise<AuthResponseDTO>;
+  login(input: { email: string; password: string }): Promise<AuthResponseDTO>;
+  getCurrentUser(token: string): Promise<PublicUserDTO>;
 }

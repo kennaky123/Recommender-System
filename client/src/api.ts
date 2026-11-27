@@ -1,5 +1,7 @@
 import { httpClient } from '@/lib/httpClient';
 import {
+  AuthResponse,
+  AuthUser,
   CatalogSort,
   MoodTag,
   NavCategory,
@@ -10,16 +12,44 @@ import {
   UserProfileResponse,
 } from './types';
 
-const USER_ID = 1;
+export async function loginUser(payload: {
+  email: string;
+  password: string;
+}): Promise<AuthResponse> {
+  const { data } = await httpClient.post<AuthResponse>('/auth/login', payload);
+  return data;
+}
+
+export async function registerUser(payload: {
+  name: string;
+  email: string;
+  password: string;
+}): Promise<AuthResponse> {
+  const { data } = await httpClient.post<AuthResponse>(
+    '/auth/register',
+    payload
+  );
+  return data;
+}
+
+export async function fetchCurrentUser(
+  signal?: AbortSignal
+): Promise<AuthUser> {
+  const { data } = await httpClient.get<{ user: AuthUser }>('/auth/me', {
+    signal,
+  });
+  return data.user;
+}
 
 export async function fetchRecommendations(
+  userId = 1,
   mood: MoodTag = 'all',
   category: NavCategory = 'home',
   signal?: AbortSignal
 ): Promise<RecommendationFeed> {
   const apiCat = category === 'films' || category === 'shows' ? category : 'home';
   const { data } = await httpClient.get<RecommendationFeed>('/recommendations', {
-    params: { userId: USER_ID, mood, category: apiCat },
+    params: { userId, mood, category: apiCat },
     signal,
   });
   return data;
@@ -27,6 +57,7 @@ export async function fetchRecommendations(
 
 export async function fetchFullCatalog(
   params: {
+    userId?: number;
     category?: 'all' | 'films' | 'shows';
     genre?: string;
     mood?: MoodTag;
@@ -39,7 +70,7 @@ export async function fetchFullCatalog(
 ): Promise<PaginatedCatalogResponse> {
   const { data } = await httpClient.get<PaginatedCatalogResponse>('/catalog', {
     params: {
-      userId: USER_ID,
+      userId: params.userId ?? 1,
       category: params.category ?? 'all',
       genre: params.genre ?? 'ALL',
       mood: params.mood ?? 'all',
@@ -55,12 +86,13 @@ export async function fetchFullCatalog(
 
 export async function fetchSimilarMovies(
   movieId: number,
+  userId = 1,
   signal?: AbortSignal
 ): Promise<RecommendedMovie[]> {
   const { data } = await httpClient.get<{ items: RecommendedMovie[] }>(
     `/movies/${movieId}/similar`,
     {
-      params: { userId: USER_ID, limit: 6 },
+      params: { userId, limit: 6 },
       signal,
     }
   );
@@ -87,6 +119,7 @@ export async function fetchMovieById(
 
 export async function searchCatalog(
   query: string,
+  userId = 1,
   mood: MoodTag = 'all',
   genre = 'ALL',
   mediaType: 'all' | 'movie' | 'tv' = 'all',
@@ -96,7 +129,7 @@ export async function searchCatalog(
 ): Promise<SearchCatalogResponse> {
   const { data } = await httpClient.get<SearchCatalogResponse>('/search', {
     params: {
-      userId: USER_ID,
+      userId,
       q: query,
       mood,
       genre,
@@ -121,27 +154,30 @@ export async function ensureMovieInDb(
 }
 
 export async function submitRating(
+  userId: number,
   movieId: number,
   rating: number
 ): Promise<{ feed: RecommendationFeed }> {
   const { data } = await httpClient.post<{ feed: RecommendationFeed }>(
-    `/user/${USER_ID}/ratings`,
+    `/user/${userId}/ratings`,
     { movieId, rating }
   );
   return data;
 }
 
 export async function toggleMyList(
+  userId: number,
   movieId: number
 ): Promise<{ inMyList: boolean; feed: RecommendationFeed }> {
   const { data } = await httpClient.post<{
     inMyList: boolean;
     feed: RecommendationFeed;
-  }>(`/user/${USER_ID}/watchlist/${movieId}`);
+  }>(`/user/${userId}/watchlist/${movieId}`);
   return data;
 }
 
 export async function saveWatchProgress(
+  userId: number,
   movieId: number,
   progressSeconds: number,
   durationSeconds: number,
@@ -149,7 +185,7 @@ export async function saveWatchProgress(
   episode = 1
 ): Promise<{ feed: RecommendationFeed }> {
   const { data } = await httpClient.post<{ feed: RecommendationFeed }>(
-    `/user/${USER_ID}/watch-progress`,
+    `/user/${userId}/watch-progress`,
     {
       movieId,
       progressSeconds,
@@ -162,10 +198,11 @@ export async function saveWatchProgress(
 }
 
 export async function fetchUserProfile(
+  userId = 1,
   signal?: AbortSignal
 ): Promise<UserProfileResponse> {
   const { data } = await httpClient.get<UserProfileResponse>(
-    `/user/${USER_ID}/profile`,
+    `/user/${userId}/profile`,
     { signal }
   );
   return data;

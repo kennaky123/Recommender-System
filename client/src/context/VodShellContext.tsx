@@ -6,16 +6,17 @@ import React, {
   useState,
 } from 'react';
 import { useNavigate, useRouterState } from '@tanstack/react-router';
-import { ensureMovieInDb } from '../api';
-import { DpadDirection, useDpadNavigation } from '../hooks/useDpadNavigation';
-import { useVodFeed, VodRowConfig } from '../hooks/useVodFeed';
+import { ensureMovieInDb } from '@/api';
+import { useAuth } from '@/context/AuthContext';
+import { DpadDirection, useDpadNavigation } from '@/hooks/useDpadNavigation';
+import { useVodFeed, VodRowConfig } from '@/hooks/useVodFeed';
 import {
   MoodTag,
   NavCategory,
   PlaybackDevice,
   RecommendationFeed,
   RecommendedMovie,
-} from '../types';
+} from '@/types';
 
 export interface PlayerModalState {
   movie: RecommendedMovie;
@@ -83,6 +84,7 @@ function deriveCategoryFromPath(pathname: string): NavCategory {
 export const VodShellProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const { activeUserId } = useAuth();
   const navigate = useNavigate();
   const pathname = useRouterState({
     select: (s) => s.location.pathname,
@@ -114,7 +116,7 @@ export const VodShellProvider: React.FC<{ children: React.ReactNode }> = ({
     handleToggleMyList,
     handleRate,
     handleProgressSync,
-  } = useVodFeed(activeMood, activeCategory);
+  } = useVodFeed(activeUserId, activeMood, activeCategory);
 
   const navigateToCategory = useCallback(
     (cat: NavCategory) => {
