@@ -1,15 +1,18 @@
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-} from 'react';
+import React, { createContext, useCallback, useContext, useMemo } from 'react';
 import { useNavigate, useRouterState } from '@tanstack/react-router';
 import { ensureMovieInDb } from '@/api';
 import { useAuth } from '@/context/AuthContext';
 import { DpadDirection, useDpadNavigation } from '@/hooks/useDpadNavigation';
 import { useVodFeed, VodRowConfig } from '@/hooks/useVodFeed';
+import { useAppDispatch, useAppSelector } from '@/store/redux/hooks';
+import {
+  setActiveMood as setActiveMoodAction,
+  setSelectedDevice as setSelectedDeviceAction,
+} from '@/store/redux/preferencesSlice';
+import {
+  type PlayerModalState,
+  useCabinUiStore,
+} from '@/store/zustand/useCabinUiStore';
 import {
   MoodTag,
   NavCategory,
@@ -18,12 +21,7 @@ import {
   RecommendedMovie,
 } from '@/types';
 
-export interface PlayerModalState {
-  movie: RecommendedMovie;
-  mode: 'watch' | 'trailer';
-  season: number;
-  episode: number;
-}
+export type { PlayerModalState };
 
 interface VodShellContextValue {
   activeCategory: NavCategory;
@@ -33,19 +31,24 @@ interface VodShellContextValue {
   loading: boolean;
   error: string | null;
   focusedMovie: RecommendedMovie | null;
-  setFocusedMovie: React.Dispatch<React.SetStateAction<RecommendedMovie | null>>;
+  setFocusedMovie: (
+    movie:
+      | RecommendedMovie
+      | null
+      | ((prev: RecommendedMovie | null) => RecommendedMovie | null)
+  ) => void;
   actionsVisible: boolean;
-  setActionsVisible: React.Dispatch<React.SetStateAction<boolean>>;
+  setActionsVisible: (visible: boolean) => void;
   activeRows: VodRowConfig[];
   toast: string | null;
   activeMood: MoodTag;
-  setActiveMood: React.Dispatch<React.SetStateAction<MoodTag>>;
+  setActiveMood: (mood: MoodTag) => void;
   sidebarExpanded: boolean;
-  setSidebarExpanded: React.Dispatch<React.SetStateAction<boolean>>;
+  setSidebarExpanded: (expanded: boolean) => void;
   remoteOpen: boolean;
   setRemoteOpen: React.Dispatch<React.SetStateAction<boolean>>;
   selectedDevice: PlaybackDevice;
-  setSelectedDevice: React.Dispatch<React.SetStateAction<PlaybackDevice>>;
+  setSelectedDevice: (device: PlaybackDevice) => void;
   playerState: PlayerModalState | null;
   closePlayer: () => void;
   launchPlayer: (
@@ -86,6 +89,7 @@ export const VodShellProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const { activeUserId } = useAuth();
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const pathname = useRouterState({
     select: (s) => s.location.pathname,
   });
@@ -95,12 +99,38 @@ export const VodShellProvider: React.FC<{ children: React.ReactNode }> = ({
     [pathname]
   );
 
-  const [activeMood, setActiveMood] = useState<MoodTag>('all');
-  const [sidebarExpanded, setSidebarExpanded] = useState(false);
-  const [remoteOpen, setRemoteOpen] = useState(false);
-  const [selectedDevice, setSelectedDevice] =
-    useState<PlaybackDevice>('CABIN DISPLAY 8K');
-  const [playerState, setPlayerState] = useState<PlayerModalState | null>(null);
+  // Redux Toolkit preferences state
+  const activeMood = useAppSelector((s) => s.preferences.activeMood);
+  const selectedDevice = useAppSelector((s) => s.preferences.selectedDevice);
+  const setActiveMood = useCallback(
+    (mood: MoodTag) => dispatch(setActiveMoodAction(mood)),
+    [dispatch]
+  );
+  const setSelectedDevice = useCallback(
+    (device: PlaybackDevice) => dispatch(setSelectedDeviceAction(device)),
+    [dispatch]
+  );
+
+  // Zustand Cabin UI state
+  const sidebarExpanded = useCabinUiStore((s) => s.sidebarExpanded);
+  const setSidebarExpanded = useCabinUiStore((s) => s.setSidebarExpanded);
+  const remoteOpen = useCabinUiStore((s) => s.remoteOpen);
+  const setRemoteOpenStore = useCabinUiStore((s) => s.setRemoteOpen);
+  const playerState = useCabinUiStore((s) => s.playerState);
+  const openPlayer = useCabinUiStore((s) => s.openPlayer);
+  const closePlayer = useCabinUiStore((s) => s.closePlayer);
+
+  const setRemoteOpen: React.Dispatch<React.SetStateAction<boolean>> =
+    useCallback(
+      (valOrUpdater) => {
+        const next =
+          typeof valOrUpdater === 'function'
+            ? valOrUpdater(useCabinUiStore.getState().remoteOpen)
+            : valOrUpdater;
+        setRemoteOpenStore(next);
+      },
+      [setRemoteOpenStore]
+    );
 
   const {
     feed,
@@ -192,17 +222,15 @@ export const VodShellProvider: React.FC<{ children: React.ReactNode }> = ({
       episode = 1
     ) => {
       const ensured = movie.id < 0 ? await ensureMovieInDb(movie) : movie;
-      setPlayerState({
+      openPlayer({
         movie: ensured,
         mode,
         season: season || ensured.lastSeason || 1,
         episode: episode || ensured.lastEpisode || 1,
       });
     },
-    []
+    [openPlayer]
   );
-
-  const closePlayer = useCallback(() => setPlayerState(null), []);
 
   const isSeriesOpen = pathname.startsWith('/series');
 

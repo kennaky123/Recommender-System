@@ -13,6 +13,8 @@ import {
   X,
 } from '@phosphor-icons/react';
 import { Slider } from '@/components/ui/slider';
+import { useAppDispatch, useAppSelector } from '@/store/redux/hooks';
+import { setCabinVolume } from '@/store/redux/preferencesSlice';
 import { NavCategory } from '../types';
 
 interface MobileRemoteDrawerProps {
@@ -32,7 +34,8 @@ export const MobileRemoteDrawer: React.FC<MobileRemoteDrawerProps> = ({
   onSelectCategory,
   onToggleMyList,
 }) => {
-  const [volume, setVolume] = React.useState(49);
+  const dispatch = useAppDispatch();
+  const volume = useAppSelector((s) => s.preferences.cabinVolume);
 
   if (!open) return null;
 
@@ -139,7 +142,7 @@ export const MobileRemoteDrawer: React.FC<MobileRemoteDrawerProps> = ({
           max={100}
           step={1}
           value={[volume]}
-          onValueChange={(vals) => setVolume(vals[0] ?? 49)}
+          onValueChange={(vals) => dispatch(setCabinVolume(vals[0] ?? 49))}
           aria-label="Cabin audio volume"
         />
         <span className="text-[12px] font-bold text-white tabular-nums w-6 text-right">

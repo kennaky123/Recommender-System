@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ensureMovieInDb,
@@ -8,6 +8,7 @@ import {
 } from '@/api';
 import { useRecommendationsQuery } from '@/hooks/useVodQueries';
 import { vodQueryKeys } from '@/lib/queryClient';
+import { useCabinUiStore } from '@/store/zustand/useCabinUiStore';
 import {
   MoodTag,
   NavCategory,
@@ -23,7 +24,7 @@ export interface VodRowConfig {
 }
 
 /**
- * Single Responsibility hook powered by TanStack Query + Axios mutations.
+ * Single Responsibility hook combining TanStack Query server state with Zustand Cabin UI store.
  */
 export function useVodFeed(
   userId: number,
@@ -37,14 +38,12 @@ export function useVodFeed(
     error: queryError,
   } = useRecommendationsQuery(userId, activeMood, activeCategory);
 
-  const [focusedMovie, setFocusedMovie] = useState<RecommendedMovie | null>(null);
-  const [actionsVisible, setActionsVisible] = useState(true);
-  const [toast, setToast] = useState<string | null>(null);
-
-  const showToast = useCallback((msg: string) => {
-    setToast(msg);
-    window.setTimeout(() => setToast(null), 3200);
-  }, []);
+  const focusedMovie = useCabinUiStore((s) => s.focusedMovie);
+  const setFocusedMovie = useCabinUiStore((s) => s.setFocusedMovie);
+  const actionsVisible = useCabinUiStore((s) => s.actionsVisible);
+  const setActionsVisible = useCabinUiStore((s) => s.setActionsVisible);
+  const toast = useCabinUiStore((s) => s.toast);
+  const showToast = useCabinUiStore((s) => s.showToast);
 
   useEffect(() => {
     if (!feed) return;
@@ -59,7 +58,7 @@ export function useVodFeed(
       }
       return feed.heroFeatured;
     });
-  }, [feed]);
+  }, [feed, setFocusedMovie]);
 
   const syncFeedCache = useCallback(
     (nextFeed: RecommendationFeed) => {
@@ -189,11 +188,14 @@ export function useVodFeed(
     return rows;
   }, [feed]);
 
-  const handleSelectMovie = useCallback(async (movie: RecommendedMovie) => {
-    const ensured = movie.id < 0 ? await ensureMovieInDb(movie) : movie;
-    setFocusedMovie(ensured);
-    setActionsVisible(true);
-  }, []);
+  const handleSelectMovie = useCallback(
+    async (movie: RecommendedMovie) => {
+      const ensured = movie.id < 0 ? await ensureMovieInDb(movie) : movie;
+      setFocusedMovie(ensured);
+      setActionsVisible(true);
+    },
+    [setActionsVisible, setFocusedMovie]
+  );
 
   const handleToggleMyList = useCallback(
     async (movieId: number) => {

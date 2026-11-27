@@ -4,7 +4,7 @@
 
 ## Tech Stack
 
-- **Frontend:** Vite + React + TypeScript + **TanStack Router** + **TanStack Query** + **Axios** + **React Hook Form + Zod** + **Tailwind CSS v4** + **shadcn/ui** (Radix UI + CVA) + `@phosphor-icons/react`
+- **Frontend:** Vite + React + TypeScript + **TanStack Router** + **TanStack Query** + **Axios** + **Redux Toolkit** (auth & preferences) + **Zustand** (cabin UI state) + **React Hook Form + Zod** + **Tailwind CSS v4** + **shadcn/ui** (Radix UI + CVA) + `@phosphor-icons/react`
 - **Backend:** Node.js + Express + TypeScript (`tsx`) + **JWT Auth** (`scrypt` + `jsonwebtoken` + `zod`)
 - **Demo Account:** `claude@spacex.vod` / `SpaceX@2026` (hoặc đăng ký tài khoản mới tại `/register`)
 - **Database:** PostgreSQL 16 (`pg` driver + SQL schema + automatic `InMemoryFallbackStore` nếu PostgreSQL chưa khởi chạy)

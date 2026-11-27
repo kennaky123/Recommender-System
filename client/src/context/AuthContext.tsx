@@ -1,8 +1,14 @@
-import React, { createContext, useCallback, useContext, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchCurrentUser, loginUser, registerUser } from '@/api';
 import { AUTH_TOKEN_KEY } from '@/lib/httpClient';
 import { vodQueryKeys } from '@/lib/queryClient';
+import {
+  clearAuthSession,
+  setAuthSession,
+  setAuthUser,
+} from '@/store/redux/authSlice';
+import { useAppDispatch, useAppSelector } from '@/store/redux/hooks';
 import { AuthUser } from '@/types';
 
 interface AuthContextValue {
@@ -25,22 +31,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const queryClient = useQueryClient();
-  const [hasToken, setHasToken] = useState<boolean>(() =>
-    Boolean(window.localStorage.getItem(AUTH_TOKEN_KEY))
-  );
+  const dispatch = useAppDispatch();
+  const user = useAppSelector((s) => s.auth.user);
+  const token = useAppSelector((s) => s.auth.token);
 
-  const { data: user = null, isLoading } = useQuery({
+  const { data: fetchedUser, isLoading } = useQuery({
     queryKey: vodQueryKeys.authMe(),
     queryFn: ({ signal }) => fetchCurrentUser(signal),
-    enabled: hasToken,
+    enabled: Boolean(token),
     retry: false,
   });
+
+  useEffect(() => {
+    if (fetchedUser) {
+      dispatch(setAuthUser(fetchedUser));
+    }
+  }, [dispatch, fetchedUser]);
 
   const loginMutation = useMutation({
     mutationFn: loginUser,
     onSuccess: (res) => {
       window.localStorage.setItem(AUTH_TOKEN_KEY, res.token);
-      setHasToken(true);
+      dispatch(setAuthSession({ token: res.token, user: res.user }));
       queryClient.setQueryData(vodQueryKeys.authMe(), res.user);
       queryClient.invalidateQueries({ queryKey: vodQueryKeys.all });
     },
@@ -50,7 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     mutationFn: registerUser,
     onSuccess: (res) => {
       window.localStorage.setItem(AUTH_TOKEN_KEY, res.token);
-      setHasToken(true);
+      dispatch(setAuthSession({ token: res.token, user: res.user }));
       queryClient.setQueryData(vodQueryKeys.authMe(), res.user);
       queryClient.invalidateQueries({ queryKey: vodQueryKeys.all });
     },
@@ -74,10 +86,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const logout = useCallback(() => {
     window.localStorage.removeItem(AUTH_TOKEN_KEY);
-    setHasToken(false);
+    dispatch(clearAuthSession());
     queryClient.setQueryData(vodQueryKeys.authMe(), null);
     queryClient.invalidateQueries({ queryKey: vodQueryKeys.all });
-  }, [queryClient]);
+  }, [dispatch, queryClient]);
 
   return (
     <AuthContext.Provider
@@ -85,7 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         user,
         activeUserId: user?.id ?? 1,
         isAuthenticated: Boolean(user),
-        isAuthLoading: hasToken && isLoading,
+        isAuthLoading: Boolean(token) && isLoading,
         login,
         register,
         logout,
