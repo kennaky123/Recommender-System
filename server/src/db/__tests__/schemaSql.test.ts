@@ -70,6 +70,10 @@ test('schema.sql preserves Domain A data via ALTER TABLE ADD COLUMN IF NOT EXIST
 
   assert.match(sqlText, /CONSTRAINT chk_item_sim_not_self CHECK \(movie_id <> neighbor_movie_id\)/i);
   assert.match(sqlText, /CONSTRAINT chk_user_sim_not_self CHECK \(user_id <> neighbor_user_id\)/i);
+  assert.match(
+    sqlText,
+    /UPDATE ratings[\s\S]*SET source = 'movielens'[\s\S]*u\.name LIKE 'MOVIELENS USER %'[\s\S]*u\.email IS NULL[\s\S]*r\.source = 'explicit_ui'/i
+  );
 });
 
 test('schema.sql defines all required indexes including Blue-Green partial unique index', () => {

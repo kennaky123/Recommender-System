@@ -91,6 +91,14 @@ BEGIN
   END IF;
 END $$;
 
+UPDATE ratings r
+SET source = 'movielens'
+FROM users u
+WHERE r.user_id = u.id
+  AND u.name LIKE 'MOVIELENS USER %'
+  AND u.email IS NULL
+  AND r.source = 'explicit_ui';
+
 CREATE INDEX IF NOT EXISTS idx_ratings_movie ON ratings (movie_id);
 CREATE INDEX IF NOT EXISTS idx_ratings_rated_at ON ratings (rated_at);
 CREATE INDEX IF NOT EXISTS idx_ratings_user_time ON ratings (user_id, rated_at DESC);
