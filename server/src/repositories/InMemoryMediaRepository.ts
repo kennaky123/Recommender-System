@@ -19,7 +19,7 @@ import {
   WatchProgressRecord,
 } from '../domain/types';
 import { RatingValue, WatchProgressValue } from '../domain/ValueObjects';
-import { ScryptPasswordHasher } from '../services/auth/ScryptPasswordHasher';
+import { BcryptPasswordHasher } from '../services/auth/BcryptPasswordHasher';
 import { IMediaRepository } from './IMediaRepository';
 
 /**
@@ -36,7 +36,7 @@ export class InMemoryMediaRepository implements IMediaRepository {
     this.mediaList = SEED_MOVIES.map((dto) =>
       MediaFactory.fromDTO(structuredClone(dto))
     );
-    const hasher = new ScryptPasswordHasher();
+    const hasher = new BcryptPasswordHasher(10);
     this.authUsers = SEED_USERS.map((u) => ({
       id: u.id,
       name: u.name,

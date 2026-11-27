@@ -7,7 +7,7 @@ import {
   SEED_WATCHLIST,
   SEED_WATCH_HISTORY,
 } from '../db/seedData';
-import { ScryptPasswordHasher } from '../services/auth/ScryptPasswordHasher';
+import { BcryptPasswordHasher } from '../services/auth/BcryptPasswordHasher';
 import { DatabaseConnection } from './DatabaseConnection';
 
 /**
@@ -50,7 +50,7 @@ export class DatabaseSeeder {
     const demoCheck = await this.db.pool.query(
       'SELECT id, email, password_hash FROM users WHERE id = 1'
     );
-    const hasher = new ScryptPasswordHasher();
+    const hasher = new BcryptPasswordHasher(10);
     const demoHash = hasher.hash('SpaceX@2026');
     if (demoCheck.rows.length === 0) {
       await this.db.pool.query(

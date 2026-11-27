@@ -14,8 +14,8 @@ import { DrizzleMediaRepository } from '../repositories/DrizzleMediaRepository';
 import { IMediaRepository } from '../repositories/IMediaRepository';
 import { InMemoryMediaRepository } from '../repositories/InMemoryMediaRepository';
 import { AuthService } from '../services/auth/AuthService';
+import { BcryptPasswordHasher } from '../services/auth/BcryptPasswordHasher';
 import { JwtTokenProvider } from '../services/auth/JwtTokenProvider';
-import { ScryptPasswordHasher } from '../services/auth/ScryptPasswordHasher';
 import { CatalogService } from '../services/CatalogService';
 import { CollaborativeStrategy } from '../services/recommendation/CollaborativeStrategy';
 import { ContentBasedStrategy } from '../services/recommendation/ContentBasedStrategy';
@@ -116,7 +116,7 @@ export class ServerApplication {
 
     const authService = new AuthService({
       userRepo: repository,
-      passwordHasher: new ScryptPasswordHasher(),
+      passwordHasher: new BcryptPasswordHasher(10),
       tokenProvider: new JwtTokenProvider(this.config),
     });
 
