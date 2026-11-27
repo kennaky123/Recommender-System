@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { IAuthMiddleware } from '../middleware/JwtAuthMiddleware';
 import { IUserActivityService } from '../services/interfaces/ServiceInterfaces';
 import {
   submitRatingBodySchema,
@@ -13,31 +14,43 @@ import { BaseController } from './BaseController';
  */
 export class UserController extends BaseController {
   private readonly userService: IUserActivityService;
+  private readonly authMiddleware: IAuthMiddleware;
 
-  public constructor(userService: IUserActivityService) {
+  public constructor(
+    userService: IUserActivityService,
+    authMiddleware: IAuthMiddleware
+  ) {
     super();
     this.userService = userService;
+    this.authMiddleware = authMiddleware;
   }
 
   protected registerRoutes(): void {
+    const guard = this.authMiddleware.requireSelfOrResearcher();
+
     this.router.get(
       '/user/:userId/profile',
+      guard,
       this.handleAsync(this.getProfile.bind(this))
     );
     this.router.get(
       '/user/:userId/watchlist',
+      guard,
       this.handleAsync(this.getWatchlist.bind(this))
     );
     this.router.post(
       '/user/:userId/watchlist/:movieId',
+      guard,
       this.handleAsync(this.toggleWatchlist.bind(this))
     );
     this.router.post(
       '/user/:userId/ratings',
+      guard,
       this.handleAsync(this.submitRating.bind(this))
     );
     this.router.post(
       '/user/:userId/watch-progress',
+      guard,
       this.handleAsync(this.saveWatchProgress.bind(this))
     );
   }

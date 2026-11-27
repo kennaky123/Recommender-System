@@ -8,6 +8,7 @@ import { HealthController } from '../controllers/HealthController';
 import { MovieController } from '../controllers/MovieController';
 import { RecommendationController } from '../controllers/RecommendationController';
 import { UserController } from '../controllers/UserController';
+import { JwtAuthMiddleware } from '../middleware/JwtAuthMiddleware';
 import { DatabaseConnection } from '../repositories/DatabaseConnection';
 import { DatabaseSeeder } from '../repositories/DatabaseSeeder';
 import { DrizzleMediaRepository } from '../repositories/DrizzleMediaRepository';
@@ -119,10 +120,16 @@ export class ServerApplication {
       cacheInvalidator: recommender,
     });
 
+    const tokenProvider = new JwtTokenProvider(this.config);
+    const authMiddleware = new JwtAuthMiddleware(
+      tokenProvider,
+      this.config.internalApiToken
+    );
+
     const authService = new AuthService({
       userRepo: repository,
       passwordHasher: new BcryptPasswordHasher(10),
-      tokenProvider: new JwtTokenProvider(this.config),
+      tokenProvider,
     });
 
     this.mountControllers([
@@ -130,7 +137,7 @@ export class ServerApplication {
       new AuthController(authService),
       new MovieController(catalogService),
       new RecommendationController(recommender),
-      new UserController(userService),
+      new UserController(userService, authMiddleware),
     ]);
 
     this.app.listen(this.config.port, () => {
