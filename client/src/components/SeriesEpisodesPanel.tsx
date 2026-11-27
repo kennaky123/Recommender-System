@@ -1,5 +1,8 @@
 import React from 'react';
 import { ArrowLeft, Play } from '@phosphor-icons/react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Episode, RecommendedMovie } from '../types';
 
 interface SeriesEpisodesPanelProps {
@@ -32,36 +35,29 @@ export const SeriesEpisodesPanel: React.FC<SeriesEpisodesPanelProps> = ({
   return (
     <section className="relative z-10 pl-20 lg:pl-24 pr-8 pb-8">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#373B47] pb-3 mb-5">
-        {/* Season Tabs */}
-        <div className="flex items-center gap-6 overflow-x-auto no-scrollbar">
-          {seasons.map((s) => {
-            const active = s === activeSeason;
-            return (
-              <button
-                key={s}
-                type="button"
-                onClick={() => onSelectSeason(s)}
-                className={`relative pb-2 text-[13px] font-bold uppercase tracking-[0.08em] transition-colors cursor-pointer whitespace-nowrap ${
-                  active ? 'text-white' : 'text-[#87899D] hover:text-[#C8D0E0]'
-                }`}
-              >
+        <Tabs
+          value={String(activeSeason)}
+          onValueChange={(val) => onSelectSeason(Number(val))}
+        >
+          <TabsList>
+            {seasons.map((s) => (
+              <TabsTrigger key={s} value={String(s)}>
                 SEASON {s}
-                {active && (
-                  <span className="absolute left-0 right-0 -bottom-[1px] h-[2px] bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
-                )}
-              </button>
-            );
-          })}
-        </div>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
 
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={onBack}
-          className="inline-flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.08em] text-[#C8D0E0] hover:text-white cursor-pointer"
+          className="text-[#C8D0E0] hover:text-white"
         >
           <ArrowLeft size={14} weight="bold" />
           <span>BACK TO ROWS</span>
-        </button>
+        </Button>
       </div>
 
       {/* Horizontal 16:9 Landscape Episode Cards */}
@@ -94,9 +90,12 @@ export const SeriesEpisodesPanel: React.FC<SeriesEpisodesPanelProps> = ({
                     'linear-gradient(180deg, rgba(10,14,28,0.35) 0%, rgba(10,14,28,0) 40%, rgba(8,12,24,0.92) 100%)',
                 }}
               />
-              <div className="absolute top-2.5 left-3 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-[#0F1429]/80 border border-[#87899D] rounded-[2px] text-white">
+              <Badge
+                variant="secondary"
+                className="absolute top-2.5 left-3 border-[#87899D] text-white"
+              >
                 S{ep.season} EP{ep.episode}
-              </div>
+              </Badge>
               <div className="absolute top-2.5 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
                 <Play size={18} weight="fill" className="text-[#F0EA75]" />
               </div>

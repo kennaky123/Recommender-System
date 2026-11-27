@@ -9,6 +9,53 @@
   --spacex-hairline: #373B47;
   --spacex-badge-border: #87899D;
   --spacex-8k-gold: #F0EA75;
+
+  /* shadcn/ui Space-X VOD semantic tokens */
+  --background: #0F1429;
+  --foreground: #FFFFFF;
+  --card: #0B1023;
+  --card-foreground: #FFFFFF;
+  --popover: #060914;
+  --popover-foreground: #FFFFFF;
+  --primary: #EAEAEA;
+  --primary-foreground: #0F1429;
+  --secondary: #131A35;
+  --secondary-foreground: #C8D0E0;
+  --muted: #131A35;
+  --muted-foreground: #87899D;
+  --accent: #F0EA75;
+  --accent-foreground: #0F1429;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border: #373B47;
+  --input: #373B47;
+  --ring: #FFFFFF;
+  --radius: 3px;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 6px;
 }
 
 @layer base {

@@ -12,6 +12,7 @@ import {
   SpeakerHigh,
   X,
 } from '@phosphor-icons/react';
+import { Slider } from '@/components/ui/slider';
 import { NavCategory } from '../types';
 
 interface MobileRemoteDrawerProps {
@@ -61,9 +62,8 @@ export const MobileRemoteDrawer: React.FC<MobileRemoteDrawerProps> = ({
         </button>
       </div>
 
-      {/* Crew Dragon Docking Touchpad + 4 Corner Actions */}
+      {/* Crew Dragon Docking Touchpad + Corner Actions */}
       <div className="relative flex items-center justify-center my-2">
-        {/* Corner Buttons */}
         <button
           type="button"
           onClick={() => onSelectCategory('search')}
@@ -89,12 +89,9 @@ export const MobileRemoteDrawer: React.FC<MobileRemoteDrawerProps> = ({
           <UserPlus size={18} />
         </button>
 
-        {/* Circular Docking Reticle */}
         <div className="relative w-52 h-52 rounded-full bg-[#10183C] border border-white/25 flex items-center justify-center shadow-[inset_0_0_45px_rgba(59,91,157,0.45)]">
-          {/* Inner glow */}
           <div className="w-24 h-24 rounded-full bg-[radial-gradient(circle,rgba(150,153,186,0.42)_0%,rgba(59,91,157,0.16)_55%,transparent_75%)] pointer-events-none" />
 
-          {/* Cardinal Buttons */}
           <button
             type="button"
             onClick={() => onNavigate('up')}
@@ -124,7 +121,6 @@ export const MobileRemoteDrawer: React.FC<MobileRemoteDrawerProps> = ({
             RIGHT
           </button>
 
-          {/* Center OK Crosshair */}
           <button
             type="button"
             onClick={() => onNavigate('ok')}
@@ -135,16 +131,15 @@ export const MobileRemoteDrawer: React.FC<MobileRemoteDrawerProps> = ({
         </div>
       </div>
 
-      {/* Volume Slider */}
+      {/* Radix Slider Volume Control */}
       <div className="flex items-center gap-3 px-1">
         <SpeakerHigh size={16} className="text-[#C8D0E0] shrink-0" />
-        <input
-          type="range"
+        <Slider
           min={0}
           max={100}
-          value={volume}
-          onChange={(e) => setVolume(Number(e.target.value))}
-          className="w-full accent-white cursor-pointer h-1"
+          step={1}
+          value={[volume]}
+          onValueChange={(vals) => setVolume(vals[0] ?? 49)}
           aria-label="Cabin audio volume"
         />
         <span className="text-[12px] font-bold text-white tabular-nums w-6 text-right">

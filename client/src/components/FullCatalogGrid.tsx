@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { CaretLeft, CaretRight, Database, Globe } from '@phosphor-icons/react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { fetchFullCatalog } from '../api';
 import { CatalogSort, MoodTag, RecommendedMovie } from '../types';
 import { ProviderLogo } from './ProviderLogo';
@@ -180,18 +184,16 @@ export const FullCatalogGrid: React.FC<FullCatalogGridProps> = ({
       {/* Genre Pills */}
       <div className="flex flex-wrap items-center gap-2 mb-6">
         {GENRES.map((g) => (
-          <button
+          <Button
             key={g}
             type="button"
+            variant={genre === g ? 'default' : 'secondary'}
+            size="sm"
             onClick={() => updateFilters({ genre: g, page: 1 })}
-            className={`px-3 py-1 text-[11px] font-bold uppercase tracking-[0.06em] rounded-[2px] border cursor-pointer transition-colors ${
-              genre === g
-                ? 'bg-white text-[#0F1429] border-white'
-                : 'border-[#373B47] text-[#B8C0D4] hover:border-white hover:text-white'
-            }`}
+            className="h-7 rounded-[2px]"
           >
             {g}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -199,21 +201,18 @@ export const FullCatalogGrid: React.FC<FullCatalogGridProps> = ({
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 12 }).map((_, idx) => (
-            <div
-              key={idx}
-              className="aspect-video rounded-[6px] bg-[#131A35] animate-pulse border border-[#373B47]/40"
-            />
+            <Skeleton key={idx} className="aspect-video" />
           ))}
         </div>
       ) : items.length === 0 ? (
-        <div className="border border-[#373B47] bg-[#0B1023] p-8 rounded-[4px] max-w-lg">
+        <Card className="p-8 max-w-lg">
           <p className="text-[14px] font-bold uppercase text-white">
             NO TITLES IN THIS FILTER
           </p>
           <p className="text-[12px] text-[#B8C0D4] mt-1">
             Try switching genre back to ALL or changing mood filter.
           </p>
-        </div>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {items.map((movie) => {
@@ -247,9 +246,12 @@ export const FullCatalogGrid: React.FC<FullCatalogGridProps> = ({
                 <div className="absolute top-2.5 left-3 pointer-events-none">
                   <ProviderLogo provider={movie.provider} size="sm" />
                 </div>
-                <div className="absolute top-2.5 right-3 px-1.5 py-0.5 text-[9px] font-extrabold bg-[#F0EA75] text-[#0F1429] rounded-[2px]">
+                <Badge
+                  variant="gold"
+                  className="absolute top-2.5 right-3 px-1.5 text-[9px]"
+                >
                   {movie.resolution}
-                </div>
+                </Badge>
                 <div className="absolute bottom-2.5 left-3 right-3 pointer-events-none">
                   <div className="text-[13px] font-bold uppercase text-white line-clamp-1">
                     {movie.title}
@@ -268,31 +270,31 @@ export const FullCatalogGrid: React.FC<FullCatalogGridProps> = ({
       {/* Pagination Bar */}
       {totalPages > 1 && (
         <div className="mt-8 flex items-center justify-between gap-4 border-t border-[#373B47] pt-5">
-          <button
+          <Button
             type="button"
+            variant="secondary"
             disabled={page <= 1}
             onClick={() => updateFilters({ page: Math.max(1, page - 1) })}
-            className="inline-flex items-center gap-2 px-4 py-2 border border-[#373B47] rounded-[3px] text-[12px] font-bold uppercase tracking-wider text-white disabled:opacity-35 hover:border-white cursor-pointer disabled:cursor-not-allowed"
           >
             <CaretLeft size={14} weight="bold" />
             <span>PREVIOUS</span>
-          </button>
+          </Button>
 
           <div className="text-[12px] font-bold uppercase tracking-widest text-[#C8D0E0] tabular-nums">
             PAGE {page} OF {totalPages}
           </div>
 
-          <button
+          <Button
             type="button"
+            variant="secondary"
             disabled={page >= totalPages}
             onClick={() =>
               updateFilters({ page: Math.min(totalPages, page + 1) })
             }
-            className="inline-flex items-center gap-2 px-4 py-2 border border-[#373B47] rounded-[3px] text-[12px] font-bold uppercase tracking-wider text-white disabled:opacity-35 hover:border-white cursor-pointer disabled:cursor-not-allowed"
           >
             <span>NEXT</span>
             <CaretRight size={14} weight="bold" />
-          </button>
+          </Button>
         </div>
       )}
     </section>

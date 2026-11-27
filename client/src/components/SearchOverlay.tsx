@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { MagnifyingGlass, X, Database, Globe } from '@phosphor-icons/react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ensureMovieInDb, searchCatalog } from '../api';
 import { RecommendedMovie } from '../types';
 import { ProviderLogo } from './ProviderLogo';
@@ -107,13 +112,10 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
               {total.toLocaleString()} MATCHING TITLES
             </span>
             {sourcesUsed.map((s) => (
-              <span
-                key={s}
-                className="inline-flex items-center gap-1 px-2 py-0.5 border border-[#373B47] rounded-[2px] text-[#C8D0E0]"
-              >
+              <Badge key={s} variant="secondary">
                 {s.includes('TMDB') ? <Globe size={11} /> : <Database size={11} />}
                 {s}
-              </span>
+              </Badge>
             ))}
             {!tmdbEnabled && (
               <span className="text-[#87899D]">
@@ -124,14 +126,15 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
           </div>
         </div>
 
-        <button
+        <Button
           type="button"
+          variant="secondary"
+          size="sm"
           onClick={onClose}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider border border-[#373B47] hover:border-white text-[#C8D0E0] hover:text-white rounded-[2px] cursor-pointer"
         >
           <X size={14} weight="bold" />
           <span>BACK TO HOME</span>
-        </button>
+        </Button>
       </div>
 
       {/* Search Input + Media Type Switch */}
@@ -141,13 +144,13 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
             size={18}
             className="absolute left-4 top-1/2 -translate-y-1/2 text-[#87899D]"
           />
-          <input
+          <Input
             type="text"
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search all 9,700+ MovieLens & TMDB titles (e.g. Matrix, Toy Story, Interstellar, Avatar)..."
-            className="w-full h-12 pl-11 pr-4 bg-[#060914] border border-[#373B47] focus:border-white rounded-[3px] text-[14px] text-white placeholder:text-[#87899D] focus:outline-none"
+            className="pl-11"
           />
         </div>
 
@@ -172,18 +175,16 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
       {/* Genre Pills */}
       <div className="flex flex-wrap items-center gap-2 mb-7">
         {GENRES.map((g) => (
-          <button
+          <Button
             key={g}
             type="button"
+            variant={genre === g ? 'default' : 'secondary'}
+            size="sm"
             onClick={() => setGenre(g)}
-            className={`px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em] rounded-[2px] border cursor-pointer ${
-              genre === g
-                ? 'bg-white text-[#0F1429] border-white'
-                : 'border-[#373B47] text-[#B8C0D4] hover:border-white hover:text-white'
-            }`}
+            className="h-7 rounded-[2px]"
           >
             {g}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -191,21 +192,18 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
       {loading && page === 1 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div
-              key={i}
-              className="aspect-video rounded-[6px] bg-[#131A35] animate-pulse border border-[#373B47]/40"
-            />
+            <Skeleton key={i} className="aspect-video" />
           ))}
         </div>
       ) : results.length === 0 ? (
-        <div className="border border-[#373B47] bg-[#0B1023] p-8 rounded-[4px] max-w-lg">
+        <Card className="p-8 max-w-lg">
           <p className="text-[14px] font-bold uppercase tracking-wider text-white">
             NO MATCHING TITLES FOUND
           </p>
           <p className="text-[13px] text-[#B8C0D4] mt-1">
             Try clearing the genre filter or searching for another title.
           </p>
-        </div>
+        </Card>
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -234,13 +232,13 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
                 </div>
                 <div className="absolute top-2.5 right-3 flex items-center gap-1.5">
                   {movie.source === 'tmdb' && (
-                    <span className="px-1.5 py-0.5 text-[9px] font-extrabold bg-white/90 text-[#0F1429] rounded-[2px]">
+                    <Badge variant="default" className="px-1.5 text-[9px]">
                       TMDB
-                    </span>
+                    </Badge>
                   )}
-                  <span className="px-1.5 py-0.5 text-[9px] font-extrabold bg-[#F0EA75] text-[#0F1429] rounded-[2px]">
+                  <Badge variant="gold" className="px-1.5 text-[9px]">
                     {movie.resolution}
-                  </span>
+                  </Badge>
                 </div>
                 <div className="absolute bottom-2.5 left-3 right-3">
                   <div className="text-[13px] font-bold uppercase text-white line-clamp-1">
@@ -257,16 +255,17 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
 
           {page < totalPages && (
             <div className="mt-7 flex justify-center">
-              <button
+              <Button
                 type="button"
+                variant="backlit"
                 disabled={loading}
                 onClick={() => setPage((p) => p + 1)}
-                className="spacex-backlit-btn px-8 py-2.5 text-[12px] font-bold uppercase tracking-[0.08em] cursor-pointer disabled:opacity-50"
+                className="px-8"
               >
                 {loading
                   ? 'LOADING...'
                   : `LOAD MORE RESULTS (PAGE ${page + 1} / ${totalPages})`}
-              </button>
+              </Button>
             </div>
           )}
         </>

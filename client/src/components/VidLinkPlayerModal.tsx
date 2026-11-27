@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { X, FastForward, MonitorPlay, Sparkle } from '@phosphor-icons/react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { PlaybackDevice, RecommendedMovie } from '../types';
 
 interface VidLinkPlayerModalProps {
@@ -65,7 +73,9 @@ export const VidLinkPlayerModal: React.FC<VidLinkPlayerModalProps> = ({
             payload.data.last_season_watched || season,
             payload.data.last_episode_watched || episode
           );
-          setTelemetryNotice('VIDLINK PLAYBACK TELEMETRY SYNCED TO RECOMMENDATION ENGINE');
+          setTelemetryNotice(
+            'VIDLINK PLAYBACK TELEMETRY SYNCED TO RECOMMENDATION ENGINE'
+          );
         }
       }
     };
@@ -73,14 +83,6 @@ export const VidLinkPlayerModal: React.FC<VidLinkPlayerModalProps> = ({
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, [movie.id, movie.runtimeMinutes, season, episode, onProgressSync]);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
 
   const handleSimulateProgress = () => {
     const nextPct = Math.min(95, simulatedPct + 25);
@@ -94,86 +96,93 @@ export const VidLinkPlayerModal: React.FC<VidLinkPlayerModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#04060D]/95 flex flex-col">
-      {/* Cabin Telemetry Strip */}
-      <div className="h-14 px-6 border-b border-[#373B47] bg-[#060911] flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4 min-w-0">
-          <span className="px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider bg-[#F0EA75] text-[#0F1429] rounded-[2px] shrink-0">
-            {mode === 'trailer' ? 'TRAILER' : movie.resolution}
-          </span>
-          <div className="truncate">
-            <span className="text-[14px] font-bold uppercase tracking-wider text-white">
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        {/* Cabin Telemetry Strip */}
+        <div className="h-14 px-6 border-b border-[#373B47] bg-[#060911] flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
+            <Badge variant="gold" className="shrink-0">
+              {mode === 'trailer' ? 'TRAILER' : movie.resolution}
+            </Badge>
+            <DialogTitle className="truncate">
               {movie.title}
-            </span>
-            {movie.mediaType === 'tv' && mode === 'watch' && (
-              <span className="ml-2 text-[12px] text-[#B8C0D4]">
-                S{season} EP{episode}
-              </span>
-            )}
+              {movie.mediaType === 'tv' && mode === 'watch' && (
+                <span className="ml-2 text-[12px] font-normal text-[#B8C0D4]">
+                  S{season} EP{episode}
+                </span>
+              )}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              VidLink Pro streaming player for {movie.title}
+            </DialogDescription>
+            <Badge variant="secondary" className="hidden md:inline-flex">
+              <MonitorPlay size={12} />
+              {device}
+            </Badge>
           </div>
-          <span className="hidden md:inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.12em] text-[#87899D] border border-[#373B47] px-2 py-0.5 rounded-[2px]">
-            <MonitorPlay size={12} />
-            {device}
+
+          <div className="flex items-center gap-3">
+            {mode === 'watch' && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={handleSimulateProgress}
+                className="hidden sm:inline-flex border-[#87899D] hover:border-[#F0EA75] hover:text-[#F0EA75]"
+                title="Simulate VidLink postMessage implicit feedback for recommendation engine"
+              >
+                <FastForward size={13} weight="bold" />
+                <span>SYNC +25% PROGRESS</span>
+              </Button>
+            )}
+
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={onClose}
+              className="bg-white/10 hover:bg-white hover:text-[#0F1429]"
+            >
+              <X size={14} weight="bold" />
+              <span>CLOSE (ESC)</span>
+            </Button>
+          </div>
+        </div>
+
+        {telemetryNotice && (
+          <div className="px-6 py-1.5 bg-[#101831] border-b border-[#373B47] flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-[#F0EA75]">
+            <Sparkle size={13} weight="fill" />
+            <span>{telemetryNotice}</span>
+          </div>
+        )}
+
+        {/* Embedded VidLink / Trailer Iframe */}
+        <div className="flex-1 relative bg-black">
+          <iframe
+            src={mode === 'trailer' ? trailerUrl : vidlinkUrl}
+            title={movie.title}
+            allowFullScreen
+            allow="autoplay; encrypted-media; picture-in-picture"
+            className="w-full h-full border-0"
+          />
+        </div>
+
+        {/* Bottom Source Metadata */}
+        <div className="px-6 py-2 bg-[#060911] border-t border-[#373B47] flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#87899D]">
+          <span>
+            STREAM ENDPOINT:{' '}
+            <code className="text-[#C8D0E0]">
+              {mode === 'trailer' && movie.trailerYoutubeId
+                ? `youtube.com/embed/${movie.trailerYoutubeId}`
+                : vidlinkUrl.split('?')[0]}
+            </code>
+          </span>
+          <span>
+            TMDB ID: <strong className="text-white">{movie.tmdbId}</strong> •
+            IMPLICIT FEEDBACK LISTENER ACTIVE
           </span>
         </div>
-
-        <div className="flex items-center gap-3">
-          {mode === 'watch' && (
-            <button
-              type="button"
-              onClick={handleSimulateProgress}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider border border-[#87899D] text-[#C8D0E0] hover:border-[#F0EA75] hover:text-[#F0EA75] rounded-[2px] cursor-pointer"
-              title="Simulate VidLink postMessage implicit feedback for recommendation engine"
-            >
-              <FastForward size={13} weight="bold" />
-              <span>SYNC +25% PROGRESS</span>
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider bg-white/10 hover:bg-white hover:text-[#0F1429] text-white rounded-[2px] transition-colors cursor-pointer"
-          >
-            <X size={14} weight="bold" />
-            <span>CLOSE (ESC)</span>
-          </button>
-        </div>
-      </div>
-
-      {telemetryNotice && (
-        <div className="px-6 py-1.5 bg-[#101831] border-b border-[#373B47] flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-[#F0EA75]">
-          <Sparkle size={13} weight="fill" />
-          <span>{telemetryNotice}</span>
-        </div>
-      )}
-
-      {/* Embedded VidLink / Trailer Iframe */}
-      <div className="flex-1 relative bg-black">
-        <iframe
-          src={mode === 'trailer' ? trailerUrl : vidlinkUrl}
-          title={movie.title}
-          allowFullScreen
-          allow="autoplay; encrypted-media; picture-in-picture"
-          className="w-full h-full border-0"
-        />
-      </div>
-
-      {/* Bottom Source Metadata */}
-      <div className="px-6 py-2 bg-[#060911] border-t border-[#373B47] flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#87899D]">
-        <span>
-          STREAM ENDPOINT:{' '}
-          <code className="text-[#C8D0E0]">
-            {mode === 'trailer' && movie.trailerYoutubeId
-              ? `youtube.com/embed/${movie.trailerYoutubeId}`
-              : vidlinkUrl.split('?')[0]}
-          </code>
-        </span>
-        <span>
-          TMDB ID: <strong className="text-white">{movie.tmdbId}</strong> •
-          IMPLICIT FEEDBACK LISTENER ACTIVE
-        </span>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
