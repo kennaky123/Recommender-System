@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, SQL, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, ne, SQL, sql } from 'drizzle-orm';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import {
   drizzleSchema,
@@ -9,6 +9,7 @@ import {
   userWatchlist,
   watchHistory,
 } from '../db/drizzleSchema';
+import { toNumber, toOptionalNumber } from '../db/numeric';
 import { SEED_USERS } from '../db/seedData';
 import { MediaEntity } from '../domain/MediaEntity';
 import { MediaFactory } from '../domain/MediaFactory';
@@ -47,11 +48,17 @@ export class DrizzleMediaRepository implements IMediaRepository {
   }> {
     const [movieRes, ratingRes] = await Promise.all([
       this.db.select({ count: sql<number>`count(*)::int` }).from(movies),
-      this.db.select({ count: sql<number>`count(*)::int` }).from(ratings),
+      this.db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(ratings)
+        .innerJoin(users, eq(users.id, ratings.userId))
+        .where(
+          and(eq(users.isSynthetic, false), ne(ratings.source, 'persona_sim'))
+        ),
     ]);
     return {
-      movieCount: Number(movieRes[0]?.count ?? 0),
-      ratingCount: Number(ratingRes[0]?.count ?? 0),
+      movieCount: toNumber(movieRes[0]?.count, 0),
+      ratingCount: toNumber(ratingRes[0]?.count, 0),
     };
   }
 
@@ -115,7 +122,7 @@ export class DrizzleMediaRepository implements IMediaRepository {
       sql`SELECT COUNT(*)::int AS total FROM movies m ${whereClause}`
     );
     const countRows = countResult.rows as Array<{ total?: number | string }>;
-    const total = Number(countRows[0]?.total ?? 0);
+    const total = toNumber(countRows[0]?.total, 0);
     const totalPages = Math.max(1, Math.ceil(total / limit));
 
     const orderByClause =
@@ -135,6 +142,8 @@ export class DrizzleMediaRepository implements IMediaRepository {
             SELECT r.movie_id, ROUND(AVG(r.rating)::numeric, 2) AS avg_rating, COUNT(*)::int AS rating_count
             FROM ratings r
             INNER JOIN filtered f ON f.id = r.movie_id
+            INNER JOIN users u ON u.id = r.user_id AND u.is_synthetic = FALSE
+            WHERE r.source <> 'persona_sim'
             GROUP BY r.movie_id
           )
           SELECT
@@ -164,6 +173,8 @@ export class DrizzleMediaRepository implements IMediaRepository {
             SELECT r.movie_id, ROUND(AVG(r.rating)::numeric, 2) AS avg_rating, COUNT(*)::int AS rating_count
             FROM ratings r
             INNER JOIN paged p ON p.id = r.movie_id
+            INNER JOIN users u ON u.id = r.user_id AND u.is_synthetic = FALSE
+            WHERE r.source <> 'persona_sim'
             GROUP BY r.movie_id
           )
           SELECT
@@ -186,8 +197,8 @@ export class DrizzleMediaRepository implements IMediaRepository {
     const rows = queryResult.rows as Record<string, unknown>[];
     const items: RecommendedMovieDTO[] = rows.map((row) => {
       const entity = MediaFactory.fromDatabaseRow(row);
-      const avg = Number(row.avg_rating ?? 4.0);
-      const cnt = Number(row.rating_count ?? 0);
+      const avg = toNumber(row.avg_rating, 4.0);
+      const cnt = toNumber(row.rating_count, 0);
       const score = Math.round(Math.min(99, Math.max(75, 68 + (avg / 5) * 28)));
       return {
         ...entity.toDTO(),
@@ -196,17 +207,11 @@ export class DrizzleMediaRepository implements IMediaRepository {
           cnt > 0
             ? `${avg.toFixed(1)}★ (${cnt} MOVIELENS RATINGS)`
             : `TMDB #${entity.tmdbId} CATALOG`,
-        userRating:
-          row.user_rating !== null && row.user_rating !== undefined
-            ? Number(row.user_rating)
-            : undefined,
+        userRating: toOptionalNumber(row.user_rating),
         inMyList: Boolean(row.in_my_list),
-        progressPercent:
-          row.progress_percent !== null && row.progress_percent !== undefined
-            ? Number(row.progress_percent)
-            : undefined,
-        lastSeason: row.last_season ? Number(row.last_season) : undefined,
-        lastEpisode: row.last_episode ? Number(row.last_episode) : undefined,
+        progressPercent: toOptionalNumber(row.progress_percent),
+        lastSeason: toOptionalNumber(row.last_season),
+        lastEpisode: toOptionalNumber(row.last_episode),
         communityRating: avg,
         ratingCount: cnt,
       };
@@ -292,12 +297,16 @@ export class DrizzleMediaRepository implements IMediaRepository {
         rating: ratings.rating,
         ratedAt: ratings.ratedAt,
       })
-      .from(ratings);
+      .from(ratings)
+      .innerJoin(users, eq(users.id, ratings.userId))
+      .where(
+        and(eq(users.isSynthetic, false), ne(ratings.source, 'persona_sim'))
+      );
 
     return rows.map((r) => ({
       userId: r.userId,
       movieId: r.movieId,
-      rating: Number(r.rating),
+      rating: toNumber(r.rating),
       ratedAt: (r.ratedAt ?? new Date()).toISOString(),
     }));
   }
@@ -317,7 +326,7 @@ export class DrizzleMediaRepository implements IMediaRepository {
     return rows.map((r) => ({
       userId: r.userId,
       movieId: r.movieId,
-      rating: Number(r.rating),
+      rating: toNumber(r.rating),
       ratedAt: (r.ratedAt ?? new Date()).toISOString(),
     }));
   }
@@ -336,12 +345,14 @@ export class DrizzleMediaRepository implements IMediaRepository {
         movieId,
         rating: String(normalized.value),
         ratedAt: now,
+        source: 'explicit_ui',
       })
       .onConflictDoUpdate({
         target: [ratings.userId, ratings.movieId],
         set: {
           rating: String(normalized.value),
           ratedAt: now,
+          source: 'explicit_ui',
         },
       });
   }
@@ -399,7 +410,7 @@ export class DrizzleMediaRepository implements IMediaRepository {
       movieId: r.movieId,
       progressSeconds: r.progressSeconds ?? 0,
       durationSeconds: r.durationSeconds ?? 0,
-      progressPercent: Number(r.progressPercent ?? 0),
+      progressPercent: toNumber(r.progressPercent, 0),
       lastSeason: r.lastSeason ?? 1,
       lastEpisode: r.lastEpisode ?? 1,
       updatedAt: (r.updatedAt ?? new Date()).toISOString(),
@@ -447,7 +458,7 @@ export class DrizzleMediaRepository implements IMediaRepository {
       movieId: r.movieId,
       progressSeconds: r.progressSeconds ?? 0,
       durationSeconds: r.durationSeconds ?? 0,
-      progressPercent: Number(r.progressPercent ?? 0),
+      progressPercent: toNumber(r.progressPercent, 0),
       lastSeason: r.lastSeason ?? 1,
       lastEpisode: r.lastEpisode ?? 1,
       updatedAt: (r.updatedAt ?? now).toISOString(),

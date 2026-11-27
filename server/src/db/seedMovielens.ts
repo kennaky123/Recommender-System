@@ -82,6 +82,36 @@ async function ensureDatasetPresent(datasetDir: string): Promise<void> {
   }
 }
 
+export interface MovieLensRatingInsertRow {
+  userId: number;
+  movieId: number;
+  rating: number;
+  ratedAt: string;
+}
+
+/**
+ * Build a parameterized multi-row INSERT for MovieLens ratings tagged with source = 'movielens'.
+ */
+export function buildMovieLensRatingInsertBatch(
+  chunk: MovieLensRatingInsertRow[]
+): { sql: string; values: unknown[] } {
+  const values: unknown[] = [];
+  const placeholders = chunk
+    .map((r, idx) => {
+      const base = idx * 5;
+      values.push(r.userId, r.movieId, r.rating, r.ratedAt, 'movielens');
+      return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5})`;
+    })
+    .join(',');
+
+  return {
+    sql: `INSERT INTO ratings (user_id, movie_id, rating, rated_at, source)
+         VALUES ${placeholders}
+         ON CONFLICT (user_id, movie_id) DO NOTHING`,
+    values,
+  };
+}
+
 async function seedMovieLens() {
   const args = process.argv.slice(2);
   const limitArg = args.find((a) => a.startsWith('--limit='));
@@ -307,20 +337,8 @@ async function seedMovieLens() {
     const RATING_BATCH = 1000;
     for (let i = 0; i < validRatings.length; i += RATING_BATCH) {
       const chunk = validRatings.slice(i, i + RATING_BATCH);
-      const values: unknown[] = [];
-      const placeholders = chunk
-        .map((r, idx) => {
-          const base = idx * 4;
-          values.push(r.userId, r.movieId, r.rating, r.ratedAt);
-          return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4})`;
-        })
-        .join(',');
-      await client.query(
-        `INSERT INTO ratings (user_id, movie_id, rating, rated_at)
-         VALUES ${placeholders}
-         ON CONFLICT (user_id, movie_id) DO NOTHING`,
-        values
-      );
+      const batch = buildMovieLensRatingInsertBatch(chunk);
+      await client.query(batch.sql, batch.values);
     }
 
     await client.query(
@@ -346,7 +364,9 @@ async function seedMovieLens() {
   }
 }
 
-seedMovieLens().catch((err) => {
-  console.error('[MovieLens Seed] Error:', (err as Error).message);
-  process.exit(1);
-});
+if (require.main === module) {
+  seedMovieLens().catch((err) => {
+    console.error('[MovieLens Seed] Error:', (err as Error).message);
+    process.exit(1);
+  });
+}
