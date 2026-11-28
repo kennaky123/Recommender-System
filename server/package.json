@@ -6,6 +6,7 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
+    "test": "node --import tsx --test \"src/**/__tests__/*.test.ts\"",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed:movielens": "tsx src/db/seedMovielens.ts",
     "db:push": "drizzle-kit push",

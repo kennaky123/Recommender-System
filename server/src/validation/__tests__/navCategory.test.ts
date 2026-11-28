@@ -112,3 +112,14 @@ test('SettingsPanel and useUserProfileQuery gate profile fetch on auth and avoid
   // Keep explicit Demo Crew login button intact on LoginPage
   assert.match(loginSource, /USE DEMO CREW ACCOUNT \(CLAUDE PATTERSON\)/);
 });
+
+test('server/package.json defines a Windows-safe test script using node --import tsx --test', () => {
+  const pkgPath = path.resolve(__dirname, '../../../package.json');
+  const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8')) as {
+    scripts?: Record<string, string>;
+  };
+  assert.equal(
+    pkg.scripts?.test,
+    'node --import tsx --test "src/**/__tests__/*.test.ts"'
+  );
+});
