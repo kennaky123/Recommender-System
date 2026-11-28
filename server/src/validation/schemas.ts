@@ -63,13 +63,7 @@ export const moodTagSchema = z.enum([
   'epic',
 ]);
 
-export const navCategorySchema = z.enum([
-  'home',
-  'films',
-  'shows',
-  'live',
-  'audio',
-]);
+export const navCategorySchema = z.enum(['home', 'films', 'shows']);
 
 export const catalogCategorySchema = z.enum(['all', 'films', 'shows']);
 export const mediaTypeFilterSchema = z.enum(['all', 'movie', 'tv']);

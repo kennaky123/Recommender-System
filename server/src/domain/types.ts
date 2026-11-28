@@ -14,7 +14,7 @@ export type MoodTag =
   | 'mind-bending'
   | 'epic';
 export type UserRole = 'user' | 'researcher' | 'admin';
-export type NavCategory = 'home' | 'films' | 'shows' | 'live' | 'audio';
+export type NavCategory = 'home' | 'films' | 'shows';
 export type CatalogSort = 'popular' | 'newest' | 'title';
 
 const VALID_MOOD_TAGS = new Set<MoodTag>([
