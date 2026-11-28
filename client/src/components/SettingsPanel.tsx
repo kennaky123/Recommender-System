@@ -26,7 +26,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onClose,
 }) => {
   const { user, activeUserId, isAuthenticated, logout } = useAuth();
-  const { data: profileData } = useUserProfileQuery(activeUserId, isAuthenticated);
+  const { data: rawProfileData } = useUserProfileQuery(activeUserId, isAuthenticated);
+  const profileData = isAuthenticated ? rawProfileData : undefined;
 
   const displayName =
     profileData?.profile.name ?? user?.name ?? 'GUEST PASSENGER';

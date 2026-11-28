@@ -36,6 +36,7 @@ export const vodQueryKeys = {
   movie: (movieId: number) => [...vodQueryKeys.all, 'movie', movieId] as const,
   similar: (movieId: number, userId: number) =>
     [...vodQueryKeys.all, 'similar', { movieId, userId }] as const,
+  userProfileRoot: () => [...vodQueryKeys.all, 'userProfile'] as const,
   userProfile: (userId: number) =>
     [...vodQueryKeys.all, 'userProfile', userId] as const,
 };

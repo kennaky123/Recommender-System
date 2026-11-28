@@ -88,6 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     window.localStorage.removeItem(AUTH_TOKEN_KEY);
     dispatch(clearAuthSession());
     queryClient.setQueryData(vodQueryKeys.authMe(), null);
+    queryClient.removeQueries({ queryKey: vodQueryKeys.userProfileRoot() });
     queryClient.invalidateQueries({ queryKey: vodQueryKeys.all });
   }, [dispatch, queryClient]);
 

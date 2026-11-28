@@ -123,3 +123,31 @@ test('server/package.json defines a Windows-safe test script using node --import
     'node --import tsx --test "src/**/__tests__/*.test.ts"'
   );
 });
+
+test('SettingsPanel and AuthContext prevent stale cached profileData from leaking into guest mode after logout', () => {
+  const settingsSource = fs.readFileSync(
+    path.resolve(__dirname, '../../../../client/src/components/SettingsPanel.tsx'),
+    'utf-8'
+  );
+  const authContextSource = fs.readFileSync(
+    path.resolve(__dirname, '../../../../client/src/context/AuthContext.tsx'),
+    'utf-8'
+  );
+  const queryClientSource = fs.readFileSync(
+    path.resolve(__dirname, '../../../../client/src/lib/queryClient.ts'),
+    'utf-8'
+  );
+
+  assert.match(
+    settingsSource,
+    /const\s+profileData\s*=\s*isAuthenticated\s*\?\s*rawProfileData\s*:\s*undefined/
+  );
+  assert.match(
+    queryClientSource,
+    /userProfileRoot:\s*\(\)\s*=>\s*\[\.\.\.vodQueryKeys\.all,\s*'userProfile'\]\s*as\s*const/
+  );
+  assert.match(
+    authContextSource,
+    /queryClient\.removeQueries\(\{\s*queryKey:\s*vodQueryKeys\.userProfileRoot\(\)\s*\}\)/
+  );
+});
