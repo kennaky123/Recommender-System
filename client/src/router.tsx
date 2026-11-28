@@ -82,8 +82,6 @@ const ShellFrame: React.FC = () => {
         expanded={sidebarExpanded}
         onExpandChange={setSidebarExpanded}
         onSelectCategory={navigateToCategory}
-        userName="CLAUDE PATTERSON"
-        avatarUrl="/backdrops/claude-patterson.jpg"
       />
 
       <main className="flex-1 relative pb-10">

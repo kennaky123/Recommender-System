@@ -85,9 +85,10 @@ export function useSimilarMoviesQuery(movieId: number, userId = 1) {
   });
 }
 
-export function useUserProfileQuery(userId: number) {
+export function useUserProfileQuery(userId: number, enabled = true) {
   return useQuery({
     queryKey: vodQueryKeys.userProfile(userId),
     queryFn: ({ signal }) => fetchUserProfile(userId, signal),
+    enabled: enabled && Number.isFinite(userId) && userId > 0,
   });
 }

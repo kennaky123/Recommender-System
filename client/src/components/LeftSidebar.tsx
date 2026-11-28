@@ -8,6 +8,7 @@ import {
   Bookmark,
   Settings,
   LogIn,
+  User,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Link } from '@tanstack/react-router';
@@ -46,8 +47,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 }) => {
   const { user, isAuthenticated } = useAuth();
   const displayName = user?.name ?? userName ?? 'GUEST PASSENGER';
-  const displayAvatar =
-    user?.avatarUrl ?? avatarUrl ?? '/backdrops/claude-patterson.jpg';
+  const displayAvatar = user?.avatarUrl ?? avatarUrl ?? null;
 
   return (
     <motion.aside
@@ -69,12 +69,21 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           onClick={() => onSelectCategory('settings')}
           className="flex items-center gap-4 text-left group cursor-pointer focus:outline-none"
         >
-          <div className="w-9 h-9 rounded-full overflow-hidden border border-white/25 bg-[#101831] shrink-0">
-            <img
-              src={displayAvatar}
-              alt={displayName}
-              className="w-full h-full object-cover grayscale"
-            />
+          <div className="w-9 h-9 rounded-full overflow-hidden border border-white/25 bg-[#101831] shrink-0 flex items-center justify-center">
+            {displayAvatar ? (
+              <img
+                src={displayAvatar}
+                alt={displayName}
+                className="w-full h-full object-cover grayscale"
+              />
+            ) : (
+              <User
+                size={18}
+                strokeWidth={1.75}
+                className="text-white/70"
+                aria-hidden="true"
+              />
+            )}
           </div>
           {expanded && (
             <div className="min-w-0">
@@ -82,7 +91,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 {displayName}
               </div>
               <div className="text-[9px] uppercase tracking-wider text-[#F0EA75]">
-                {isAuthenticated ? 'AUTHENTICATED' : 'DEMO PROFILE'}
+                {isAuthenticated ? 'AUTHENTICATED' : 'GUEST MODE'}
               </div>
             </div>
           )}

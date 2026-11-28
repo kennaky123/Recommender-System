@@ -7,6 +7,7 @@ import {
   Globe,
   LogIn,
   LogOut,
+  User,
 } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
@@ -24,8 +25,19 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   feed,
   onClose,
 }) => {
-  const { activeUserId, isAuthenticated, logout } = useAuth();
-  const { data: profileData } = useUserProfileQuery(activeUserId);
+  const { user, activeUserId, isAuthenticated, logout } = useAuth();
+  const { data: profileData } = useUserProfileQuery(activeUserId, isAuthenticated);
+
+  const displayName =
+    profileData?.profile.name ?? user?.name ?? 'GUEST PASSENGER';
+  const displaySubtitle =
+    profileData?.profile.email ??
+    user?.email ??
+    (isAuthenticated
+      ? `CABIN PROFILE • USER #${activeUserId}`
+      : 'GUEST MODE • SIGN IN TO SYNC PROFILE');
+  const displayAvatar =
+    profileData?.profile.avatarUrl ?? user?.avatarUrl ?? null;
 
   return (
     <div className="relative z-10 pl-20 lg:pl-24 pr-8 py-8 min-h-[calc(100dvh-66px)]">
@@ -44,20 +56,28 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         <Card>
           <CardContent className="pt-5">
             <div className="flex items-center gap-4 mb-4">
-              <img
-                src={
-                  profileData?.profile.avatarUrl ??
-                  '/backdrops/claude-patterson.jpg'
-                }
-                alt={profileData?.profile.name ?? 'Passenger'}
-                className="w-12 h-12 rounded-full object-cover grayscale border border-white/30"
-              />
+              <div className="w-12 h-12 rounded-full overflow-hidden border border-white/30 bg-[#101831] shrink-0 flex items-center justify-center">
+                {displayAvatar ? (
+                  <img
+                    src={displayAvatar}
+                    alt={displayName}
+                    className="w-full h-full object-cover grayscale"
+                  />
+                ) : (
+                  <User
+                    size={22}
+                    strokeWidth={1.75}
+                    className="text-white/70"
+                    aria-hidden="true"
+                  />
+                )}
+              </div>
               <div className="min-w-0">
                 <div className="text-[15px] font-bold uppercase tracking-wider text-white truncate">
-                  {profileData?.profile.name ?? 'CLAUDE PATTERSON'}
+                  {displayName}
                 </div>
                 <div className="text-[11px] uppercase tracking-wider text-[#87899D] truncate">
-                  {profileData?.profile.email ?? `CABIN PROFILE • USER #${activeUserId}`}
+                  {displaySubtitle}
                 </div>
               </div>
             </div>

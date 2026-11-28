@@ -2,7 +2,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
+import fs from 'node:fs';
 import http from 'node:http';
+import path from 'node:path';
 import { navCategorySchema, recommendationsQuerySchema } from '../schemas';
 import { RecommendationController } from '../../controllers/RecommendationController';
 import { IRecommendationService } from '../../services/interfaces/ServiceInterfaces';
@@ -63,4 +65,50 @@ test('GET /api/recommendations returns 400 for live/audio and 200 for home/films
   } finally {
     server.close();
   }
+});
+
+test('client router does not hardcode CLAUDE PATTERSON or claude-patterson avatar for guest ShellFrame', () => {
+  const routerSource = fs.readFileSync(
+    path.resolve(__dirname, '../../../../client/src/router.tsx'),
+    'utf-8'
+  );
+  assert.doesNotMatch(routerSource, /userName="CLAUDE PATTERSON"/);
+  assert.doesNotMatch(routerSource, /avatarUrl="\/backdrops\/claude-patterson\.jpg"/);
+});
+
+test('LeftSidebar renders GUEST PASSENGER / GUEST MODE cleanly without claude-patterson fallback', () => {
+  const sidebarSource = fs.readFileSync(
+    path.resolve(__dirname, '../../../../client/src/components/LeftSidebar.tsx'),
+    'utf-8'
+  );
+  assert.match(sidebarSource, /'GUEST PASSENGER'/);
+  assert.match(sidebarSource, /'GUEST MODE'/);
+  assert.doesNotMatch(sidebarSource, /'DEMO PROFILE'/);
+  assert.doesNotMatch(sidebarSource, /\/backdrops\/claude-patterson\.jpg/);
+});
+
+test('SettingsPanel and useUserProfileQuery gate profile fetch on auth and avoid CLAUDE PATTERSON fallback', () => {
+  const queriesSource = fs.readFileSync(
+    path.resolve(__dirname, '../../../../client/src/hooks/useVodQueries.ts'),
+    'utf-8'
+  );
+  const settingsSource = fs.readFileSync(
+    path.resolve(__dirname, '../../../../client/src/components/SettingsPanel.tsx'),
+    'utf-8'
+  );
+  const loginSource = fs.readFileSync(
+    path.resolve(__dirname, '../../../../client/src/pages/LoginPage.tsx'),
+    'utf-8'
+  );
+
+  assert.match(
+    queriesSource,
+    /export function useUserProfileQuery\(\s*userId:\s*number,\s*enabled\s*=\s*true\s*\)/
+  );
+  assert.match(settingsSource, /useUserProfileQuery\(activeUserId,\s*isAuthenticated\)/);
+  assert.match(settingsSource, /'GUEST PASSENGER'/);
+  assert.doesNotMatch(settingsSource, /CLAUDE PATTERSON/);
+  assert.doesNotMatch(settingsSource, /\/backdrops\/claude-patterson\.jpg/);
+  // Keep explicit Demo Crew login button intact on LoginPage
+  assert.match(loginSource, /USE DEMO CREW ACCOUNT \(CLAUDE PATTERSON\)/);
 });
